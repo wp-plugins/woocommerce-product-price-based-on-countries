@@ -38,7 +38,7 @@ if (  in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', 
 		
 		global $wpdb;
 
-		$version = '1.0';
+		$version = '1.0.1';
 		
 		$current_version = get_option( '_oga_wppbc_version' );
 				
@@ -79,9 +79,11 @@ if (  in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', 
 
 	function  oga_wppbc_setup () {		
 		
+		include_once ( plugin_dir_path(__FILE__).'includes/class-wppbc-settings.php' );
+
 		if ( is_admin() && !( defined('DOING_AJAX') && DOING_AJAX ) ) {
-			
-			include_once ( plugin_dir_path(__FILE__).'includes/class-wppbc-settings.php' );
+						
+			//nothing			
 						
 		} elseif( type_user_agent() !== 'bot' ) {	//no bots ip location						
 			

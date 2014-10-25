@@ -1,9 +1,9 @@
 === WooCommerce Product Price Based on Countries ===
 Contributors: oscargare
-Tags: woocommerce, dynamic price, price by country, geoip
+Tags: price based country, dynamic price based country, price by country, dynamic price, woocommerce, geoip
 Requires at least: 3.0.1
 Tested up to: 3.9.2
-Stable tag: 1.0
+Stable tag: 1.0.1
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -27,6 +27,9 @@ Based on *Woocommerce Price by Country* by *Sweet Homes*.
 1. Go to product data and sets prices for the groups you have defined.
 
 == Changelog ==
+
+= 1.0.1 =
+* Fixed a bug that did not allow to add more than one group of countries.
 
 = 1.0 =
 * Initial release!
