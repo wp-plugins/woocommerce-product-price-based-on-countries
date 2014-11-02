@@ -77,6 +77,7 @@ function oga_wppbc_location_data() {
 					
 					$data['group'] = $key;
 					$data['country_code'] = $country;
+					$data['currency'] = $group_data['currency'];
 					
 					break 2;
 				}

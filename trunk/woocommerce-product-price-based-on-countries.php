@@ -2,10 +2,10 @@
 
 /*
  Plugin Name: WooCommerce Product Price Based on Countries
+ Plugin URI: https://wordpress.org/plugins/woocommerce-product-price-based-on-countries/
  Description: Sets products prices based on country of your site's visitor.
  Author: Oscar Garcia Arenas
- Version: 1.0.1
- Plugin URI: https://wordpress.org/plugins/woocommerce-product-price-based-on-countries/
+ Version: 1.1
  Author URI: google.com/+OscarGarciaArenas
  License: GPLv2
 */
@@ -28,17 +28,17 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
 
-require_once( plugin_dir_path(__FILE__).'includes/wppbc-functions.php');
-
 if (  in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', get_option( 'active_plugins' ) ) ) ) {
-				
+	
+	require_once( plugin_dir_path(__FILE__).'includes/wppbc-functions.php');
+
 	register_activation_hook( __FILE__, 'oga_wppbc_install' );
 	
 	function oga_wppbc_install() {
 		
 		global $wpdb;
 
-		$version = '1.0.1';
+		$version = '1.1';
 		
 		$current_version = get_option( '_oga_wppbc_version' );
 				
@@ -69,8 +69,20 @@ if (  in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', 
 		}
 		
 		/* end update from Sweet Homes */		
-		
 
+		if ( $version < '1.1' ) {
+
+			$wc_currency = get_option( 'woocommerce_currency' );
+			$wppbc_groups = get_option( '_oga_wppbc_countries_groups' );
+			
+
+			foreach ($wppbc_groups as $key => $value) {
+				$wppbc_groups[$key]['currency'] = $wc_currency;
+			}
+
+			update_option( '_oga_wppbc_countries_groups', $wppbc_groups );
+		}
+		
 		update_option( '_oga_wppbc_version', $version );
 		
 	}
@@ -84,7 +96,6 @@ if (  in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', 
 		if ( is_admin() && !( defined('DOING_AJAX') && DOING_AJAX ) ) {
 						
 			//nothing			
-						
 		} elseif( type_user_agent() !== 'bot' ) {	//no bots ip location						
 			
 			if(!session_id()) {
@@ -99,10 +110,10 @@ if (  in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', 
 	   			
 	   				$_SESSION['oga_wppbc_data'] = $data;
 	   			 
-	   			}	
+	   			}		   			
 	   			   		
-	   	}	//end if ( ! isset( $_SESSION['oga_wppbc_data'] ) )
-												
+	   		}	//end if ( ! isset( $_SESSION['oga_wppbc_data'] ) )
+
 		}	//end elseif( type_user_agent() !== 'bot'
 		
 	}	
@@ -122,18 +133,24 @@ if (  in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', 
 			add_action( 'woocommerce_process_product_meta_variable', 'oga_wppbc_process_product_variable_countries_prices' );
 			
 			add_action( 'woocommerce_save_product_variation', 'oga_wppbc_save_product_variation_countries_prices', 10, 2 );
+
+			add_filter( 'woocommerce_currency',  'oga_wppbc_order_currency' );			
 			
 		} else {
+
+			//Front-End Zone
 						
 			add_filter( 'woocommerce_customer_default_location', 'oga_wppbc_default_customer_country' );
 			
+			add_filter( 'woocommerce_currency',  'oga_wppbc_currency' );
+
 			add_filter( 'woocommerce_get_regular_price', 'oga_wppbc_get_regular_price', 10, 2 );
 			
 			add_filter('woocommerce_get_price', 'oga_wppbc_get_price', 10, 2);
 			
 			add_filter( 'woocommerce_get_variation_regular_price', 'oga_wppbc_get_variation_regular_price', 10, 4 );
 							
-			add_filter( 'woocommerce_get_variation_price', 'oga_wppbc_get_variation_price', 10, 4 );
+			add_filter( 'woocommerce_get_variation_price', 'oga_wppbc_get_variation_price', 10, 4 );		
 						
 		}
 	}		
@@ -213,7 +230,7 @@ if (  in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', 
 		
 		$wppbc_country = $country;
 		
-		if ( isset( $_SESSION['oga_wppbc_data']) && $_SESSION['oga_wppbc_data'] ) {
+		if ( isset( $_SESSION['oga_wppbc_data']['country_code'] ) ) {
 			
 			$wppbc_country = $_SESSION['oga_wppbc_data']['country_code'];
 			
@@ -221,6 +238,34 @@ if (  in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', 
 		
 		return $wppbc_country;
 	}	
+
+	function oga_wppbc_currency( $currency ) {
+
+		$wppbc_currency = $currency;
+		
+		if ( isset( $_SESSION['oga_wppbc_data']['currency'] ) ) {
+			
+			$wppbc_currency = $_SESSION['oga_wppbc_data']['currency'];
+			
+		}
+		
+		return $wppbc_currency;
+	}	
+
+	function oga_wppbc_order_currency( $currency )	{
+
+		global $post;
+
+		if ($post && $post->post_type == 'shop_order' ) {
+			
+			global $theorder;
+			if ( $theorder ) 
+				return $theorder->order_currency;
+
+		}
+			
+		return $currency;
+	}
 	
 	function oga_wppbc_get_regular_price ( $price, $product ) {	
 		
@@ -308,7 +353,7 @@ if (  in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', 
 	}
 	
 	
-	function oga_wppbc_get_variation_price( $price, $product, $min_or_max, $display ) {
+	function oga_wppbc_get_variation_price( $price, $product, $min_or_max, $display ) {		
 		
 		$wppbc_price = $price;		
 			
@@ -333,12 +378,13 @@ if (  in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', 
    add_action( 'admin_notices', 'oga_wppbc_no_woocommerce_admin_notice' );
    
    function oga_wppbc_no_woocommerce_admin_notice () {
-   	?>
-   	<div class="updated">
-   		<p><strong>WooCommerce Product Price Based on Countries</strong> has been deactivated because <a href="http://woothemes.com/">Woocommerce plugin</a> is required</p>
-   	</div>
-   	<?php
-   }	
+	   	?>
+	   	<div class="updated">
+	   		<p><strong>WooCommerce Product Price Based on Countries</strong> has been deactivated because <a href="http://woothemes.com/">Woocommerce plugin</a> is required</p>
+	   	</div>
+	   	<?php
+    }	
+      	
    
 }	//end if (  in_array( 'woocommerce/woocommerce.php'
 
