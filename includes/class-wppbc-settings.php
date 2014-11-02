@@ -12,16 +12,16 @@ if ( class_exists( 'WC_Integration' ) ) {
 			$this->id = 'oga_wppbc';
 			$this->method_title = __( 'Product Price Based on Countries', 'woocommerce-product-price-based-countries' );		
 			
-	
-			add_action( 'woocommerce_update_options_integration_' . $this->id , array( &$this, 'process_admin_options') );
-			add_action( 'wp_ajax_wpbc_get_uniqid', array( &$this, 'get_id' ) );
+			add_action( 'wp_ajax_oga_id', array( &$this, 'get_id') );
+			add_action( 'woocommerce_update_options_integration_' . $this->id , array( &$this, 'process_admin_options') );			
 		}
 			
 		
 		
 		function get_id() { 
-		
-			die( json_encode( array( 'id' => uniqid() ) ) );
+			//echo json_encode( array( 'id' => uniqid() ) );
+			echo uniqid();
+			die();
 		
 		}
 		
@@ -77,73 +77,77 @@ if ( class_exists( 'WC_Integration' ) ) {
 			
 			?>
 			<script>
-			jQuery( document ).ready( function( $ ) { 
+			
+			jQuery( document ).ready( function( $ ) { 				
+
+				var uid = '<?php echo uniqid(); ?>';
+
 				$( "#wpbc_add_new_group" ).click( function() { 
+
+					$.post(ajaxurl, {action: 'oga_id' }, function( data) {
+						uid = data;					
+					});					
 				
-					var uid = null;
+					var html = '\
+						<tr>\
+						<td width="10%">\
+							<label class="">\
+								<input type="text" name="group_level_name[group_level_' + uid + ']" placeholder="<?php _e( 'Enter a group name','woocomerce-price-by-country' )?>" value="">\
+							</label>\
+						</td>\
+						<td>\
+							<div style="" class="group_states_box">\
+								<select name="group_level_country[group_level_' + uid + '][]" multiple="multiple" class="chosen_select">\
+								<?php
+								foreach( $c->countries as $k => $v ) {
+									if ( in_array( $k, (array)$s ) )
+										$selected = ' selected';
+									else
+										$selected = '';
+									echo '<option value="' . $k . '"' . $selected . '>' . $v . '</option>\ ';
+								}
+								?>
+								</select>\
+							</div>\
+							<button type="button" class="button all_button" style="display:inline-block;"><?php _e('All'); ?></button>\
+							<button type="button" class="button none_button" style="display:inline-block;"><?php _e('None'); ?></button>\
+							<button type="button" class="button es_button" style="display:inline-block;"><?php _e('ES'); ?></button>\
+							<button type="button" class="button usa_button" style="display:inline-block;"><?php _e('USA'); ?></button>\
+							<button type="button" class="button eu_button" style="display:inline-block;"><?php _e('EU'); ?></button>\
+						</td>\
+						<td><select\
+                    		name="group_level_currency[group_level_' + uid + ']" class="chosen_select">\
+                    		<?php 
+                    		foreach ( get_woocommerce_currencies() as $code => $name ) { 
+                    			if ( $code == get_woocommerce_currency() ) 
+                    				$selected = ' selected ';
+                    			else
+                    				$selected = '';
+
+                    			echo '<option value="' . $code . '"' . $selected . '>' . $name . ' (' . get_woocommerce_currency_symbol( $code ) . ') </option>\ ';
+		                    }
+		                    ?>
+		                    </select>\
+                    	</td>\
+						<td width="10%">\
+						</td>\
+					</tr>\
+					';
 					
-					$.post( ajaxurl, { action:'wpbc_get_uniqid' }, function( data ) { 
+					$( '.group_table' ).append( html );
+					$("select.chosen_select").chosen();
 					
-						try { 
-							var j = $.parseJSON( data );
-							
-							uid = j.id;
-							
-						} catch( err ) { 
-					
-							alert( '<?php _e( 'An error occurred. Try again.', 'woocomerce-price-by-country' )?>');
-							return false;
-					
-						}
-					
-						var html = '\
-							<tr>\
-							<td width="10%">\
-								<label class="">\
-									<input type="text" name="group_level_name[group_level_' + uid + ']" placeholder="<?php _e( 'Enter a group name','woocomerce-price-by-country' )?>" value="">\
-								</label>\
-							</td>\
-							<td>\
-								<div style="" class="group_states_box">\
-									<select name="group_level_country[group_level_' + uid + '][]" multiple="multiple" class="chosen_select">\
-									<?php
-									foreach( $c->countries as $k => $v ) {
-										if ( in_array( $k, (array)$s ) )
-											$selected = ' selected';
-										else
-											$selected = '';
-										echo '<option value="' . $k . '"' . $selected . '>' . $v . '</option>\ ';
-									}
-									?>
-									</select>\
-								</div>\
-								<button type="button" class="button all_button" style="display:inline-block;"><?php _e('All'); ?></button>\
-								<button type="button" class="button none_button" style="display:inline-block;"><?php _e('None'); ?></button>\
-								<button type="button" class="button es_button" style="display:inline-block;"><?php _e('ES'); ?></button>\
-								<button type="button" class="button usa_button" style="display:inline-block;"><?php _e('USA'); ?></button>\
-								<button type="button" class="button eu_button" style="display:inline-block;"><?php _e('EU'); ?></button>\
-							</td>\
-							<td width="10%">\
-							</td>\
-						</tr>\
-						';
-						
-						$( '.group_table' ).append( html );
-						$("select.chosen_select").chosen();
-						return false;
-					
-					});
-					
+					return false;									
+				
 	
-				})
+				});
 				
 				$( ".edit_group" ).click( function() { 
 				
 					var uid = $(this).attr('id'),
 						prev = $(this).prev('.group-name'),
 						prevName = prev.val(),
-						parentTrLinea = $(this).parents('tr').eq(0);
-					
+						parentTrLinea = $(this).parents('tr').eq(0);						
 					
 					
 					$.post( ajaxurl, { action:'wpbc_get_uniqid' }, function( data ) { 
@@ -152,7 +156,7 @@ if ( class_exists( 'WC_Integration' ) ) {
 							jsonSettings = JSON.parse(settings),
 							currentEdit = jsonSettings[uid];
 						
-							console.log(currentEdit);
+							var currency = parentTrLinea.find('.group-currency').text() ;
 						
 						var html = '\
 							<td width="10%">\
@@ -189,9 +193,18 @@ if ( class_exists( 'WC_Integration' ) ) {
 								<button type="button" class="button usa_button" style="display:inline-block;"><?php _e('USA'); ?></button>\
 								<button type="button" class="button eu_button" style="display:inline-block;"><?php _e('EU'); ?></button>\
 							</td>\
+							<td><select name="group_level_currency[' + uid + ']" class="chosen_select">';							
+                    		<?php foreach ( get_woocommerce_currencies() as $code => $name ) { ?>
+                    			if ( currency == '<?php echo $code; ?>' ) selected = 'selected';
+                    			else selected ='';
+                    			html2 += '<option value="<?php echo $code;?>"' + selected + '><?php echo $name ?></option>';
+
+		                    <?php } ?>
+
+			                    html2 += '</select>\
+	                    	</td>\
 							<td width="10%">\
-							</td>\
-						';
+							</td>';
 						
 						var res = html.concat(html1,html2);
 						
@@ -234,6 +247,9 @@ if ( class_exists( 'WC_Integration' ) ) {
 								<strong><?php _e( 'Countries', 'woocomerce-price-by-country' ) ?></strong>
 							</th>
 							<th>
+								<strong><?php _e( 'Currency', 'woocommerce' ) ?></strong>
+							</th>
+							<th>
 								<strong><?php _e( 'Delete', 'ignitewoo_tiered_pricing' ) ?></strong>
 								<img class="help_tip tiered" src="<?php echo $woocommerce->plugin_url() ?>/assets/images/help.png" data-tip="<?php _e( 'Delete a group of price', 'woocomerce-price-by-country' )?>">
 							</th>
@@ -258,6 +274,7 @@ if ( class_exists( 'WC_Integration' ) ) {
 								<td>
 									<?php echo implode(', ', $data['countries']); ?>
 								</td>
+								<td class="group-currency"><?php echo isset( $data['currency'] ) ? $data['currency'] : get_woocommerce_currency(); ?></td>
 								<td width="10%">
 									<input type="checkbox" value="<?php echo $key ?>" style="" id="<?php echo $key ?>" name="group_level_delete[<?php echo $key ?>]" class="input-text wide-input "> 
 								</td>
@@ -336,19 +353,25 @@ if ( class_exists( 'WC_Integration' ) ) {
 			
 			$settings = get_option( '_oga_wppbc_countries_groups' );
 			
+			if ( !is_array( $settings ) ) {
+				$settings = array();
+			}
+			
 			if ((!empty($_POST['group_level_name'])) && (!empty($_POST['group_level_country']))) {
 				
 				$new_goups = array();
 				
 				$names = $_POST['group_level_name'];
 				$countries = $_POST['group_level_country'];				
-					
+				$currencies = $_POST['group_level_currency'];				
+
 				if ($names) {
 				
 					foreach($names as $key => $name) {
 						
 						$new_goups[$key]['name'] = $name;
 						$new_goups[$key]['countries'] = $countries[$key];
+						$new_goups[$key]['currency'] = $currencies[$key];
 					}
 				}
 				
