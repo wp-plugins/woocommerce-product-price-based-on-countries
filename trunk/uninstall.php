@@ -11,10 +11,20 @@ delete_option ( '_oga_wppbc_api_country_field' );
 
 delete_option( '_oga_wppbc_countries_groups' ); 
 
-//delete all custom countries prices 
+delete_option( 'wc_price_based_country_update_geoip' );
 
-global $wpdb;
+delete_option( 'wc_price_based_country_debug_mode' );
 
-$wpdb->query( "DELETE FROM " . $wpdb->postmeta . " WHERE meta_key LIKE '_group_level_%_price'" );
+delete_option( 'wc_price_based_country_debug_ip' );
 
+delete_option( 'wc_price_based_country_timestamp' );
+
+
+// unlink geoip db
+
+$geoip_db = p_upload_dir();
+$geoip_db = $geoip_db['basedir'] . '/wc-price-based-country/GeoLite2-Country.mmdb';
+
+if ( file_exists($geoip_db) ) 
+	unlink( $geoip_db);
 ?>
