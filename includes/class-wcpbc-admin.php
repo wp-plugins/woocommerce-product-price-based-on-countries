@@ -21,11 +21,11 @@ class WCPBC_Admin {
 			
 		add_action( 'woocommerce_process_product_meta_simple', array( &$this, 'process_product_simple_countries_prices' ) ) ;						
 		
-		add_action( 'woocommerce_product_after_variable_attributes', array( &$this, 'product_variable_attributes_countries_prices', 10, 3 ) );
+		add_action( 'woocommerce_product_after_variable_attributes', array( &$this, 'product_variable_attributes_countries_prices') , 10, 3 );
 		
 		add_action( 'woocommerce_process_product_meta_variable', array( &$this, 'process_product_variable_countries_prices' ) );
 		
-		add_action( 'woocommerce_save_product_variation', array( &$this, 'save_product_variation_countries_prices', 10, 2 ) );
+		add_action( 'woocommerce_save_product_variation', array( &$this, 'save_product_variation_countries_prices' ), 10, 2 );
 
 		add_filter( 'woocommerce_currency',  array( &$this, 'order_currency' ) );
 
@@ -84,22 +84,27 @@ class WCPBC_Admin {
 			
 		$countries_groups = get_option( '_oga_wppbc_countries_groups' );
 		
-		foreach ($countries_groups as $key => $value ) {
+		if ( $countries_groups ) {
+
+			foreach ($countries_groups as $key => $value ) {
 			
-			$id = '_' . $key . '_variable_price';
-			
-			$price = isset( $variation_data[$id] ) ? esc_attr( $variation_data[$id][0] ) : ''; 
-				 
-			?>
-				<tr>
-					<td colspan="2">
-						<label><?php echo __( 'Price for', 'woocommerce-product-price-based-countries' ) . ' ' . $value['name'] . ' (' . get_woocommerce_currency_symbol() . ')'; ?></label>
-						<input type="text" name="<?php echo $id . '[' . $loop . ']'; ?>" value="<?php echo $price; ?>" class="wc_input_price" />
-					</td>							
-				</tr>
-			<?php
-					
+				$id = '_' . $key . '_variable_price';
+				
+				$price = isset( $variation_data[$id] ) ? esc_attr( $variation_data[$id][0] ) : ''; 
+					 
+				?>
+					<tr>
+						<td colspan="2">
+							<label><?php echo __( 'Price for', 'woocommerce-product-price-based-countries' ) . ' ' . $value['name'] . ' (' . get_woocommerce_currency_symbol() . ')'; ?></label>
+							<input type="text" name="<?php echo $id . '[' . $loop . ']'; ?>" value="<?php echo $price; ?>" class="wc_input_price" />
+						</td>							
+					</tr>
+				<?php
+						
+			}	
+
 		}
+		
 	}
 	
 	function process_product_variable_countries_prices( $post_id ) {

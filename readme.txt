@@ -3,7 +3,7 @@ Contributors: oscargare
 Tags: price based country, dynamic price based country, price by country, dynamic price, woocommerce, geoip
 Requires at least: 3.0.1
 Tested up to: 4.1
-Stable tag: 1.2
+Stable tag: 1.2.1
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -48,6 +48,9 @@ Note that automatic Maxmind database updates cannot be enabled until you can suc
 3. Product Data regular prices per group.
 
 == Changelog ==
+
+= 1.2.1 =
+* Fixed bug that not allow set prices in variable products.
 
 = 1.2 =
 * Added: REST service is replaced by GEOIP Database.

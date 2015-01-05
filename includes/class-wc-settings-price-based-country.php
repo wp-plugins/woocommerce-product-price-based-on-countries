@@ -65,7 +65,12 @@ class WC_Settings_Price_Based_Country extends WC_Settings_Page {
 		if ( file_exists( WCPBC_GEOIP_DB ) ) {		
 
 			$next_update = wp_next_scheduled( 'wcpbc_update_geoip' );
-
+			$debug_country = '';
+			$debug_ip = get_option( 'wc_price_based_country_debug_ip' );
+			if ( $debug_ip ) {
+				$debug_country = WC()->countries->countries[ get_country_from_ip( $debug_ip ) ];
+			}
+			
 			return array(			
 			
 				array( 
@@ -115,6 +120,7 @@ class WC_Settings_Price_Based_Country extends WC_Settings_Page {
 				array(
 					'title' => __( 'Debugging IP', 'woocommerce-product-price-based-countries' ),					
 					'id' 		=> 'wc_price_based_country_debug_ip',
+					'desc'	=> $debug_country,
 					'default'	=> '',
 					'type' 		=> 'text'					
 				),
