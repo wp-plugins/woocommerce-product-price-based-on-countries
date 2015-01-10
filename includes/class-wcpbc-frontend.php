@@ -15,7 +15,11 @@ class WCPBC_Frontend {
 
 	function __construct(){
 
+		if( ! session_id()) session_start();		   			   	
+
 		add_action( 'plugins_loaded', array( &$this, 'set_client_location_data' ) );
+
+		add_action( 'woocommerce_checkout_update_order_review', array( &$this, 'checkout_country_update' ) );
 
 		add_filter( 'woocommerce_customer_default_location', array( &$this, 'default_customer_country' ) );
 			
@@ -29,10 +33,8 @@ class WCPBC_Frontend {
 						
 		add_filter( 'woocommerce_get_variation_price', array( &$this, 'get_variation_price' ), 10, 4 );		
 	}
-
-	function set_client_location_data() {
-
-		if( ! session_id()) session_start();		   			   	
+	
+	function set_client_location_data( ) {	
    		
    		if ( isset( $_SESSION['oga_wppbc_data'] ) && $_SESSION['oga_wppbc_data']['timestamp'] < get_option( 'wc_price_based_country_timestamp' ) ) {
    				unset( $_SESSION['oga_wppbc_data'] );
@@ -40,34 +42,24 @@ class WCPBC_Frontend {
 
    		if ( ! isset( $_SESSION['oga_wppbc_data'] ) ) {
 
-   			$client_country = self::client_country_code();
+   			$client_country = self::country_from_client_ip();
 	
 			if ( $client_country ) {
 				
-				$countries_groups = get_option( '_oga_wppbc_countries_groups' );
-				
-				foreach ( $countries_groups as $key => $group_data ) {				
-
-					foreach ( $group_data['countries'] as $country ) {
-
-						if ( $country == $client_country ) {
-
-							$_SESSION['oga_wppbc_data']['group'] = $key;
-							$_SESSION['oga_wppbc_data']['country_code'] = $client_country;
-							$_SESSION['oga_wppbc_data']['currency'] = $countries_groups[$key]['currency'];	
-							$_SESSION['oga_wppbc_data']['timestamp'] = time();					
-							break 2;
-						}
-					}
-				}
+				self::set_country( $client_country );
 			}
    		}
 
-   		/*if ( get_option( 'wc_price_based_country_debug_mode' ) == 'yes' && !( defined('DOING_AJAX') && DOING_AJAX ) ) {
-   			print_r('WC Price Based Country debug info: ' . print_r( $_SESSION['oga_wppbc_data'], true ) );
-   		}*/
-   		
 
+	}
+
+	function checkout_country_update( $post_data ) {			
+		
+		if ( isset( $_POST['s_country'] ) && isset( $_SESSION['oga_wppbc_data']['country_code'] ) && $_SESSION['oga_wppbc_data']['country_code'] != $_POST['s_country'] ) {
+			
+			self::set_country( $_POST['s_country'] );
+			
+		}
 	}
 
 	function default_customer_country( $country ) {
@@ -194,7 +186,28 @@ class WCPBC_Frontend {
 		return $wppbc_price;
 	}
 
-	protected static function client_country_code() {	
+	protected static function set_country( $country_code ) {	
+
+		$countries_groups = get_option( '_oga_wppbc_countries_groups' );
+				
+		foreach ( $countries_groups as $key => $group_data ) {				
+
+			foreach ( $group_data['countries'] as $country ) {
+
+				if ( $country == $country_code ) {
+
+					$_SESSION['oga_wppbc_data']['group'] = $key;
+					$_SESSION['oga_wppbc_data']['country_code'] = $country_code;
+					$_SESSION['oga_wppbc_data']['currency'] = $countries_groups[$key]['currency'];	
+					$_SESSION['oga_wppbc_data']['timestamp'] = time();					
+					break 2;
+				}
+			}
+		}
+
+	}
+
+	protected static function country_from_client_ip() {	
 
 		$debug_ip = get_option( 'wc_price_based_country_debug_ip' );
 
