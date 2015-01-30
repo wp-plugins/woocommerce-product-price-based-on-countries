@@ -51,7 +51,7 @@ if ( ! function_exists('get_country_from_ip') ) {
 /**
  * Conditional to test for bot user agent.
  *
- * @return bool
+ * @return boolean
  */
 if ( ! function_exists('is_bot') ) {
 
@@ -62,6 +62,39 @@ if ( ! function_exists('is_bot') ) {
 		return preg_match ( "/googlebot|adsbot|yahooseeker|yahoobot|msnbot|watchmouse|pingdom\.com|feedfetcher-google/", $user_agent );
 	}
 }
+
+/**
+ * Test for load admin class
+ *
+ * @return boolean
+*/
+if ( ! function_exists('wc_price_based_country_is_admin') ) {
+
+	function wc_price_based_country_is_admin() {
+		
+		$is_ajax = defined('DOING_AJAX') && DOING_AJAX;
+
+		$ajax_allow_actions = array( 'woocommerce_add_variation' );
+
+		return ( is_admin() && !$is_ajax ) || ( is_admin() && $is_ajax && isset( $_POST['action'] ) && in_array( $_POST['action'], $ajax_allow_actions ) );
+	}
+}
+
+/**
+ * Test for load frontend class
+ *
+ * @return boolean
+*/
+if ( ! function_exists('wc_price_based_country_is_frontend') ) {
+
+	function wc_price_based_country_is_frontend() {
+		
+		$is_ajax = defined('DOING_AJAX') && DOING_AJAX;
+		
+		return ! is_bot() && file_exists( WCPBC_GEOIP_DB ) && ( ! is_admin() || ( is_admin() && $is_ajax ) );
+	}
+}
+
 
 /**
  * Download GeoIp Database
@@ -143,7 +176,7 @@ function wcpbc_cron_schedules( $schedules ) {
 add_filter( 'cron_schedules', 'wcpbc_cron_schedules' );
 
 /**
- * Deactivate WC_Price_Based_Country delete de scheduled event
+ * Deactivate WC_Price_Based_Country delete scheduled event
  */
 function wc_price_based_country_deactivate() {
 	
@@ -155,7 +188,7 @@ function wc_price_based_country_deactivate() {
 register_deactivation_hook( WCPBC_FILE, 'wc_price_based_country_deactivate' );	
 
 /**
- * Activate WC_Price_Based_Country delete de scheduled event
+ * Activate WC_Price_Based_Country add scheduled event
  */
 function wc_price_based_country_activate() {
 
