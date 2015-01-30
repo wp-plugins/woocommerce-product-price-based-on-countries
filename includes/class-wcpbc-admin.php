@@ -95,7 +95,7 @@ class WCPBC_Admin {
 				?>
 					<tr>
 						<td colspan="2">
-							<label><?php echo __( 'Price for', 'woocommerce-product-price-based-countries' ) . ' ' . $value['name'] . ' (' . get_woocommerce_currency_symbol() . ')'; ?></label>
+							<label><?php echo __( 'Price for', 'woocommerce-product-price-based-countries' ) . ' ' . $value['name'] . ' (' . get_woocommerce_currency_symbol($value['currency']) . ')'; ?></label>
 							<input type="text" name="<?php echo $id . '[' . $loop . ']'; ?>" value="<?php echo $price; ?>" class="wc_input_price" />
 						</td>							
 					</tr>

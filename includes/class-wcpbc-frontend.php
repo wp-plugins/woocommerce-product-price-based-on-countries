@@ -19,7 +19,7 @@ class WCPBC_Frontend {
 
 		add_action( 'plugins_loaded', array( &$this, 'set_client_location_data' ) );
 
-		add_action( 'woocommerce_checkout_update_order_review', array( &$this, 'checkout_country_update' ) );
+		//add_action( 'woocommerce_checkout_update_order_review', array( &$this, 'checkout_country_update' ) );
 
 		add_filter( 'woocommerce_customer_default_location', array( &$this, 'default_customer_country' ) );
 			
@@ -32,8 +32,19 @@ class WCPBC_Frontend {
 		add_filter( 'woocommerce_get_variation_regular_price', array( &$this, 'get_variation_regular_price' ), 10, 4 );
 						
 		add_filter( 'woocommerce_get_variation_price', array( &$this, 'get_variation_price' ), 10, 4 );		
+
+		//add_action('wp_head', array(&$this, 'debug_message') );
 	}
 	
+	function debug_message(){
+
+		if ( isset( WC()->customer->country ) ) {
+			wc_print_notice(WC()->customer->country);	
+		}
+		
+
+	}
+
 	function set_client_location_data( ) {	
    		
    		if ( isset( $_SESSION['oga_wppbc_data'] ) && $_SESSION['oga_wppbc_data']['timestamp'] < get_option( 'wc_price_based_country_timestamp' ) ) {
@@ -50,7 +61,6 @@ class WCPBC_Frontend {
 			}
    		}
 
-
 	}
 
 	function checkout_country_update( $post_data ) {			
@@ -58,7 +68,7 @@ class WCPBC_Frontend {
 		if ( isset( $_POST['s_country'] ) && isset( $_SESSION['oga_wppbc_data']['country_code'] ) && $_SESSION['oga_wppbc_data']['country_code'] != $_POST['s_country'] ) {
 			
 			self::set_country( $_POST['s_country'] );
-			
+						
 		}
 	}
 

@@ -34,11 +34,11 @@ if (  in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', 
 	
 	require_once 'includes/wcpbc-functions.php';	
 
-	if ( is_admin() && !( defined('DOING_AJAX') && DOING_AJAX ) ) {
+	if ( wc_price_based_country_is_admin() ) {
 
 		require_once 'includes/class-wcpbc-admin.php';	
 
-	} elseif ( ! is_bot() && file_exists( WCPBC_GEOIP_DB ) ) {
+	} elseif ( wc_price_based_country_is_frontend() ) {
 		
 		require_once 'includes/class-wcpbc-frontend.php';			
 	}		
