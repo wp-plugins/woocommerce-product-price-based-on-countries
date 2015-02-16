@@ -3,7 +3,7 @@ Contributors: oscargare
 Tags: price based country, dynamic price based country, price by country, dynamic price, woocommerce, geoip
 Requires at least: 3.0.1
 Tested up to: 4.1
-Stable tag: 1.2.2
+Stable tag: 1.2.3
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -11,11 +11,22 @@ Sets products prices based on country of your site's visitor.
 
 == Description ==
 
-**WooCommerce Product Price Based on Countries** is a extension for WooCommerce that allows you to set dynamic pricing for products based on the country of your website's visitors. 
+**WooCommerce Product Price Based on Countries** is a extension for WooCommerce that allows you to set dynamic product price based on customer's country. 
 
-The plugin gets the country using GeoIp database and displays product price and currency you have defined previously for this country (or group of countries), if you didn't have defined a price for this country shows the regular price.
+The plugin detect automatically visitor's country using geolocation features and display the price and currency you have defined previously for this country (or region), if you didn't have defined a price for this country shows the regular price.
 
-This plugin is WooCommerce 2.x compatible.
+**Key Features**
+
+* Easy settings and integrated with Woocommerce settings page.
+* Multicurrency: allows to receive payments in different currencies, reducing the costs of currency conversions.
+* Include regular price and sale price by region.
+* Automatically detects of customer's country, with price and currency set accordingly.
+* Refresh price and currency on order preview, cart and shop when country changes on checkout page.
+
+**Requirements**
+
+* WordPress 3.6 or later
+* Woocommerce 2.1.x or later.
 
 This product includes GeoLite2 data created by MaxMind, available from http://www.maxmind.com.
 
@@ -43,11 +54,17 @@ Note that automatic Maxmind database updates cannot be enabled until you can suc
 
 == Screenshots ==
 
-1. Settings page.
-2. Countries group settings page.
-3. Product Data regular prices per group.
+1. /assets/screenshot-1.png
+2. /assets/screenshot-2.png
+3. /assets/screenshot-3.png
+4. /assets/screenshot-4.png
 
 == Changelog ==
+
+= 1.2.3 =
+* Added: Sale price by groups of countries.
+* Added: Refresh prices and currency when user changes billing country on checkout page.
+* Fixed minor bugs.
 
 = 1.2.2 =
 * Fixed bug that not show prices per countries group when added a new variation using the "add variation" button.

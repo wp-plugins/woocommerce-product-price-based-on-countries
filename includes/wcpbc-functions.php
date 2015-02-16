@@ -49,6 +49,44 @@ if ( ! function_exists('get_country_from_ip') ) {
 }
 
 /**
+ * Retrun country IsoCode from client IP
+ *
+ * @return String
+ */
+
+if ( ! function_exists('country_from_client_ip') ) {
+
+	function country_from_client_ip() {	
+
+		$debug_ip = get_option( 'wc_price_based_country_debug_ip' );
+
+		if ( get_option( 'wc_price_based_country_debug_mode' ) == 'yes' && $debug_ip ) {
+
+			$client_ip = $debug_ip;
+
+		} else {
+
+			if ( isset( $_SERVER['HTTP_CLIENT_IP'] ) && $_SERVER['HTTP_CLIENT_IP'] ) {
+			
+				$client_ip = $_SERVER['HTTP_CLIENT_IP'];
+				
+			} elseif( isset( $_SERVER['HTTP_X_FORWARDED_FOR'] ) && $_SERVER['HTTP_X_FORWARDED_FOR'] ) {
+				
+				$client_ip = $_SERVER['HTTP_X_FORWARDED_FOR'];
+			
+			} else {
+				
+				$client_ip = $_SERVER['REMOTE_ADDR'];
+			}			
+
+		}	
+		
+		return get_country_from_ip( $client_ip );
+	}
+}
+
+
+/**
  * Conditional to test for bot user agent.
  *
  * @return boolean

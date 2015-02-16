@@ -1,8 +1,4 @@
 <?php
-/**
- * WooCommerce Price Based Country Settings
- *
- */
 
 if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
 
@@ -10,6 +6,13 @@ if ( ! class_exists( 'WC_Settings_Price_Based_Country' ) ) :
 
 /**
  * WC_Settings_Price_Based_Country
+ *
+ * WooCommerce Price Based Country settings page
+ *
+ * @class 		WC_Settings_Price_Based_Country
+ * @version		1.2.3
+ * @category	Class
+ * @author 		oscargare
  */
 class WC_Settings_Price_Based_Country extends WC_Settings_Page {
 
@@ -424,6 +427,9 @@ class WC_Settings_Price_Based_Country extends WC_Settings_Page {
 						unset( $section_settings[$value] );
 
 						$metakeys[] = "'_". $value ."_price'";
+						$metakeys[] = "'_". $value ."_sale_price'";
+						$metakeys[] = "'_". $value ."_variable_price'";
+						$metakeys[] = "'_". $value ."_variable_sale_price'";
 					}
 
 					update_option( '_oga_wppbc_countries_groups', $section_settings );
