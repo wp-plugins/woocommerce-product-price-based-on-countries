@@ -1,9 +1,9 @@
 === WooCommerce Product Price Based on Countries ===
 Contributors: oscargare
 Tags: price based country, dynamic price based country, price by country, dynamic price, woocommerce, geoip
-Requires at least: 3.0.1
+Requires at least: 3.6.1
 Tested up to: 4.1
-Stable tag: 1.2.3
+Stable tag: 1.2.4
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -60,6 +60,10 @@ Note that automatic Maxmind database updates cannot be enabled until you can suc
 4. /assets/screenshot-4.png
 
 == Changelog ==
+
+= 1.2.4 =
+* Fixed bug that break style in variable products.
+* Fixed bug: prices not show in variable products.
 
 = 1.2.3 =
 * Added: Sale price by groups of countries.
