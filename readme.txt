@@ -52,6 +52,11 @@ You can also ask MaxMind to unblock the IP address of your web server.
 
 Note that automatic Maxmind database updates cannot be enabled until you can successfully download the database from your web server.
 
+= That way can I test that the prices are displayed correctly for a given country? =
+
+If you are in a test environment, you can configure the debug mode in the setting page.
+In a production environment you can use a anonymous navigation tool like [hola](http://hola.org/)
+
 == Screenshots ==
 
 1. /assets/screenshot-1.png
