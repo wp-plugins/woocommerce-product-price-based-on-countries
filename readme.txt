@@ -1,9 +1,9 @@
 === WooCommerce Product Price Based on Countries ===
 Contributors: oscargare
 Tags: price based country, dynamic price based country, price by country, dynamic price, woocommerce, geoip
-Requires at least: 3.0.1
+Requires at least: 3.6.1
 Tested up to: 4.1
-Stable tag: 1.2.3
+Stable tag: 1.2.5
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -52,6 +52,11 @@ You can also ask MaxMind to unblock the IP address of your web server.
 
 Note that automatic Maxmind database updates cannot be enabled until you can successfully download the database from your web server.
 
+= That way can I test that the prices are displayed correctly for a given country? =
+
+If you are in a test environment, you can configure the debug mode in the setting page.
+In a production environment you can use a privacy VPN tools like [hola](http://hola.org/) or [ZenMate](https://zenmate.com/)
+
 == Screenshots ==
 
 1. /assets/screenshot-1.png
@@ -60,6 +65,14 @@ Note that automatic Maxmind database updates cannot be enabled until you can suc
 4. /assets/screenshot-4.png
 
 == Changelog ==
+
+= 1.2.5 =
+* Fixed bug that breaks execution of cron jobs when run from wp-cron.php.
+* Fixed bug: Error in uninstall procedure.
+
+= 1.2.4 =
+* Fixed bug that break style in variable products.
+* Fixed bug: prices not show in variable products.
 
 = 1.2.3 =
 * Added: Sale price by groups of countries.
