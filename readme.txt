@@ -3,7 +3,7 @@ Contributors: oscargare
 Tags: price based country, dynamic price based country, price by country, dynamic price, woocommerce, geoip
 Requires at least: 3.6.1
 Tested up to: 4.1
-Stable tag: 1.2.4
+Stable tag: 1.2.5
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -55,7 +55,7 @@ Note that automatic Maxmind database updates cannot be enabled until you can suc
 = That way can I test that the prices are displayed correctly for a given country? =
 
 If you are in a test environment, you can configure the debug mode in the setting page.
-In a production environment you can use a anonymous navigation tool like [hola](http://hola.org/)
+In a production environment you can use a privacy VPN tools like [hola](http://hola.org/) or [ZenMate](https://zenmate.com/)
 
 == Screenshots ==
 
@@ -65,6 +65,10 @@ In a production environment you can use a anonymous navigation tool like [hola](
 4. /assets/screenshot-4.png
 
 == Changelog ==
+
+= 1.2.5 =
+* Fixed bug that breaks execution of cron jobs when run from wp-cron.php.
+* Fixed bug: Error in uninstall procedure.
 
 = 1.2.4 =
 * Fixed bug that break style in variable products.

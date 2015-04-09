@@ -130,9 +130,8 @@ if ( ! function_exists('wc_price_based_country_is_frontend') ) {
 		$is_ajax = defined('DOING_AJAX') && DOING_AJAX;
 
 		$ajax_allow_actions = array( 'woocommerce_update_order_review' );
-
-		//return ! is_bot() && file_exists( WCPBC_GEOIP_DB ) && ( ! is_admin() || ( is_admin() && $is_ajax && isset( $_POST['action'] ) && in_array( $_POST['action'], $ajax_allow_actions ) ) );
-		return ! is_bot() && file_exists( WCPBC_GEOIP_DB ) && ( ! is_admin() || ( is_admin() && $is_ajax ) );
+		
+		return ! is_bot() && file_exists( WCPBC_GEOIP_DB ) && ( ! is_admin() || ( is_admin() && $is_ajax ) ) && ! defined( 'DOING_CRON' );
 	}
 }
 
