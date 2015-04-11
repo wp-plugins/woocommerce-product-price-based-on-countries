@@ -32,7 +32,9 @@ class WCPBC_Customer {
 
 		$this->_data = WC()->session->get( 'wcpbc_customer' );	
 
-		if ( empty( $this->_data ) || ( $this->country !== WC()->customer->country) || ( $this->timestamp < get_option( 'wc_price_based_country_timestamp' ) ) ) {
+		//print_r( WC()->customer->country );
+
+		if ( empty( $this->_data ) || ! in_array( WC()->customer->country, $this->countries ) || ( $this->timestamp < get_option( 'wc_price_based_country_timestamp' ) ) ) {
 
 			$this->set_country( WC()->customer->country );
 		}
@@ -62,7 +64,14 @@ class WCPBC_Customer {
 	 * @return string
 	 */
 	public function __get( $property ) {
-		return isset( $this->_data[ $property ] ) ? $this->_data[ $property ] : '';
+
+		$value = isset( $this->_data[ $property ] ) ? $this->_data[ $property ] : '';
+
+		if ( $property === 'countries' && ! $value) {
+			$value = array();			
+		}
+
+		return $value;
 	}
 
 
@@ -74,33 +83,21 @@ class WCPBC_Customer {
 	 */
 	public function set_country( $country ) {
 
-		$this->_data = array(
-				'country' => '',
-				'group_key' => '',
-				'currency' => '',
-				'timestamp' => ''
-			);
-
-		$countries_groups = get_option( '_oga_wppbc_countries_groups' );
+		$this->_data = array();	
 				
-		foreach ( $countries_groups as $key => $group_data ) {				
+		foreach ( WCPBC()->get_regions() as $key => $group_data ) {				
 
 			foreach ( $group_data['countries'] as $country_code ) {
 		
-				if ( $country == $country_code ) {
+				if ( $country === $country_code ) {
 
-					$this->_data = array(
-						'country' => $country,
-						'group_key' => $key,
-						'currency' => $countries_groups[$key]['currency'],
-						'timestamp' => time()
-					);
-					
+					$this->_data = array_merge( $group_data, array( 'group_key' => $key, 'timestamp' => time() ) );
+										
 					break 2;
 				}
 			}
 		}
-
+		
 		$this->_changed = true;
 	}
 

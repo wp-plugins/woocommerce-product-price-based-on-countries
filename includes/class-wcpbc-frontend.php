@@ -12,7 +12,7 @@ require_once 'class-wcpbc-customer.php';
  * WooCommerce Price Based Country Front-End
  *
  * @class 		WCPBC_Frontend
- * @version		1.2.3
+ * @version		1.3.0
  * @category	Class
  * @author 		oscargare
  */
@@ -45,10 +45,16 @@ class WCPBC_Frontend {
 						
 		add_filter( 'woocommerce_get_variation_price', array( &$this, 'get_variation_price' ), 10, 4 );		
 
+		add_action( 'wcpbc_manual_country_select', array( &$this, 'country_select' ) );
+
 	}		
 
 	function init() {
 
+		//Manual country selector
+		if ( isset($_POST['wcpbc-manual-country']) && $_POST['wcpbc-manual-country'] ) {
+			WC()->customer->set_country($_POST['wcpbc-manual-country']);
+		}
 		//WCPBC_Customer instance
 		$this->customer = new WCPBC_Customer();			
 
@@ -67,7 +73,7 @@ class WCPBC_Frontend {
 
 	function checkout_country_update( $post_data ) {			
 		
-		if ( isset( $_POST['country'] ) && $_POST['country'] !== $this->customer->country ) {
+		if ( isset( $_POST['country'] ) && ! in_array( $_POST['country'] , $this->customer->countries ) ) {
 			
 			$this->customer->set_country( $_POST['country'] );
 						
@@ -112,7 +118,15 @@ class WCPBC_Frontend {
 						
 			$wppbc_price = get_post_meta( $post_id, $meta_key, true );
 			
-			$wppbc_price = ($wppbc_price == '' OR $wppbc_price == 0) ? $price : $wppbc_price;										
+			if ( $wppbc_price === '' OR $wppbc_price == 0 ) {
+
+				if ( $this->customer->empty_price_method ) {
+					$wppbc_price = ($price * $this->customer->conversion_rate);
+
+				} else {
+					$wppbc_price = $price;
+				}
+			}
 			
 		}
 			
@@ -189,6 +203,32 @@ class WCPBC_Frontend {
 		
 		return $wppbc_price;
 	}	
+
+	function country_select() {
+
+		$all_countries = WC()->countries->get_countries();		
+		$base_country = wc_get_base_location();			
+
+		$countries[ $base_country['country'] ] = $all_countries[$base_country['country']];
+
+		foreach ( WCPBC()->get_regions() as $region ) {
+			
+			foreach ( $region['countries'] as $country ) {
+
+				if ( ! array_key_exists( $country, $countries ) ) {
+					$countries[ $country ] = $all_countries[$country];					
+				}
+			}			
+		}
+
+		asort( $countries );
+		
+		$other_country = key( array_diff_key($all_countries, $countries ) );
+		
+		$countries[$other_country] = apply_filters( 'wcpbc_other_countries_title', 'Other countries');	
+
+		wc_get_template('country-selector.php', array( 'countries' => $countries ), 'woocommerce-product-price-based-on-countries/', untrailingslashit( plugin_dir_path( WCPBC_FILE ) ) . '/templates/' );
+	}
 		 
 }
 

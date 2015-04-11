@@ -249,15 +249,17 @@ class WC_Settings_Price_Based_Country extends WC_Settings_Page {
 		if ( ! isset( $group['name'] ) ) $group['name'] = '';
 		if ( ! isset( $group['countries'] ) ) $group['countries'] = array();
 		if ( ! isset( $group['currency'] ) ) $group['currency'] = get_option('woocommerce_currency');
+		if ( ! isset( $group['empty_price_method'] ) ) $group['empty_price_method'] = '';
+		if ( ! isset( $group['conversion_rate'] ) ) $group['conversion_rate'] = '1';
 
 		?>
 		<h3><?php echo $group['name'] ? esc_html( $group['name'] ) : __( 'Add Group', 'woocommerce-product-price-based-countries' ); ?></h3>
 		<table class="form-table">
 
-			<!-- Group name -->
+			<!-- Region name -->
 			<tr valign="top">
 				<th scope="row" class="titledesc">
-					<label for="group_name"><?php _e( 'Group Name', 'woocommerce-product-price-based-countries' ); ?></label>
+					<label for="group_name"><?php _e( 'Region Name', 'woocommerce-product-price-based-countries' ); ?></label>
 					<?php //echo $tip; ?>
 				</th>
                 <td class="forminp forminp-text">
@@ -306,9 +308,36 @@ class WC_Settings_Price_Based_Country extends WC_Settings_Page {
 				</td>
 			</tr>
 
+			<!-- Empty price mode -->			
+			<tr valign="top">
+				<th scope="row" class="titledesc">
+					<label for="empty_price_method"><?php _e( 'Empty price mode', 'woocommerce-product-price-based-countries' ); ?></label>
+					<img class="help_tip" data-tip="<?php echo esc_attr( __( 'This option determines how calculate price if the product price is empty for this region.', 'woocommerce-product-price-based-countries' ) ); ?>" src="<?php echo WC()->plugin_url(); ?>/assets/images/help.png" height="16" width="16" />
+				</th>
+				<td class="forminp forminp-select">
+					<select name="empty_price_method" id="empty_price_method" class="chosen_select">
+						<option value="" <?php echo selected( $group['empty_price_method'], '' ); ?>><?php _e( 'Show WooCommerce regular price' ); ?></option>
+						<option value="conversion_rate" <?php echo selected( $group['empty_price_method'], 'conversion_rate' ); ?>><?php _e( 'Apply a conversion rate' ); ?></option>
+					</select>
+				<td>			
+			</tr>
+
+			<!-- Conversion rate -->			
+			<tr valign="top">
+				<th scope="row" class="titledesc">
+					<label for="conversion_rate"><?php _e( 'Conversion Rate', 'woocommerce-product-price-based-countries' ); ?></label>
+					<?php //echo $tip; ?>
+				</th>
+                <td class="forminp forminp-text">
+                	<span>1 <?php echo get_option('woocommerce_currency'); ?> = </span>
+                	<input name="conversion_rate" id="conversion_rate" type="text" class="short wc_input_price" <?php echo ( $group['empty_price_method']=='' ? 'disabled="disabled"' : ''); ?> value="<?php echo wc_format_localized_price( $group['conversion_rate'] ); ?>"/> 
+                	<?php //echo $description; ?>
+                </td>
+			</tr>
+
 		</table>
 
-		<?php
+		<?php				
 
 	}
 
@@ -350,6 +379,8 @@ class WC_Settings_Price_Based_Country extends WC_Settings_Page {
 		} else {
 			parent::output();			
 		}	
+
+		wp_enqueue_script( 'wc-price-based-country-admin', plugin_dir_url( WCPBC_FILE ) . 'assets/js/wcpbc-admin.js', array( 'woocommerce_settings' ), WC_VERSION, true );		
 	}
 
 
@@ -383,6 +414,8 @@ class WC_Settings_Price_Based_Country extends WC_Settings_Page {
 			$section_settings[$key]['name'] = $_POST['group_name'];
 			$section_settings[$key]['countries'] = $_POST['group_countries'];
 			$section_settings[$key]['currency'] = $_POST['group_currency'];
+			$section_settings[$key]['empty_price_method'] = $_POST['empty_price_method'];
+			$section_settings[$key]['conversion_rate'] = wc_format_decimal( $_POST['conversion_rate'], 6 );
 			
 			update_option( '_oga_wppbc_countries_groups', $section_settings );
 			

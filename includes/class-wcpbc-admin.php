@@ -10,7 +10,7 @@ if ( ! class_exists( 'WCPBC_Admin' ) ) :
  * WooCommerce Price Based Country Admin 
  *
  * @class 		WCPBC_Admin
- * @version		1.2.3
+ * @version		1.2.4
  * @category	Class
  * @author 		oscargare
  */
@@ -19,6 +19,8 @@ class WCPBC_Admin {
 	function __construct(){
 		
 		add_action('init', array(&$this, 'init'));
+
+		add_action( 'admin_enqueue_scripts', array( &$this, 'load_admin_script' ) );
 
 	}
 
@@ -49,7 +51,7 @@ class WCPBC_Admin {
 
 		add_filter( 'woocommerce_currency',  array( &$this, 'order_currency' ) );
 
-		add_action( 'admin_notices', array( &$this, 'check_database_file' ) );
+		add_action( 'admin_notices', array( &$this, 'check_database_file' ) );	
 
 	}
 
@@ -66,20 +68,21 @@ class WCPBC_Admin {
 	/**
 	 * Add price input to product simple metabox
 	 */
-	function product_options_countries_prices() {		
+	function product_options_countries_prices() {					
+
+		if ( count( WCPBC()->get_regions() ) ) {
 	?>		
-		<div class="options_group show_if_simple show_if_external wc-metaboxes-wrapper">			
+		<div class="options_group show_if_simple show_if_external wc-metaboxes-wrapper" style="margin-bottom: 25px;">			
 			<p class="toolbar">				
 				<a href="#" class="close_all"><?php _e( 'Close all', 'woocommerce' ); ?></a><a href="#" class="expand_all"><?php _e( 'Expand all', 'woocommerce' ); ?></a>
 				<strong>Price Based on Country</strong>
 			</p>
 
 			<div class="wc-metaboxes">
-	<?php 
-		$countries_groups =  get_option( '_oga_wppbc_countries_groups' );
-
-		foreach ($countries_groups as $key => $value ) {
-	?>
+	<?php 		
+			foreach ( WCPBC()->get_regions() as $key => $value ) {			
+		
+			?>
 				<div class="wc-metabox">
 					<h3>					
 						<div class="handlediv" title="<?php _e( 'Click to toggle', 'woocommerce' ); ?>"></div>
@@ -95,7 +98,7 @@ class WCPBC_Admin {
 								</td>
 								<td>
 									<label style="margin:0px;"><?php echo __( 'Sale Price', 'woocommerce' ) . ' (' . get_woocommerce_currency_symbol($value['currency']) . ')'; ?></label>
-									<input type="text" id="<?php echo '_' . $key . '_sale_price'; ?>" name="<?php echo '_' . $key . '_sale_price'; ?>" value="<?php echo wc_format_localized_price( get_post_meta( get_the_ID(), '_' . $key . '_sale_price' , true ) ); ?>" class="wc_input_price" />								
+									<input type="text" id="<?php echo '_' . $key . '_sale_price'; ?>" name="<?php echo '_' . $key . '_sale_price'; ?>" value="<?php echo wc_format_localized_price( get_post_meta( get_the_ID(), '_' . $key . '_sale_price' , true ) ); ?>" class="wc_input_price wcpbc_sale_price" />								
 								</td>
 							</tr>
 						</tbody>
@@ -103,25 +106,24 @@ class WCPBC_Admin {
 					</div>
 				</div>
 
-	<?php
+			<?php
 
-		}
+				}			
 
-	?>
+			?>
+
 			</div>
 		</div>
 	<?php				
-				
+		}
 	}
 	
 	/**
 	 * Save meta data product simple
 	 */
-	function process_product_simple_countries_prices( $post_id ) {
+	function process_product_simple_countries_prices( $post_id ) {				
 		
-		$countries_groups =  get_option( '_oga_wppbc_countries_groups' );
-		
-		foreach ($countries_groups as $key => $value ) {
+		foreach ( WCPBC()->get_regions() as $key => $value ) {
 			
 			$id = '_' . $key . '_price';			
 			
@@ -138,17 +140,15 @@ class WCPBC_Admin {
 	 * Deprecated for Woocommerce 2.2
 	 * Add price input to product variation metabox
 	 */
-	function product_variable_attributes_countries_prices_wc2_2( $loop, $variation_data, $variation ) {
-
-		$countries_groups = get_option( '_oga_wppbc_countries_groups' );
+	function product_variable_attributes_countries_prices_wc2_2( $loop, $variation_data, $variation ) {	
 		
-		if ( $countries_groups ) {
+		if ( count( WCPBC()->get_regions() ) ) {
 
 		?>
 			<tr><td colspan="2"><strong>Price Based on Country<strong></td></tr>
 		<?php
 
-			foreach ($countries_groups as $key => $value ) {
+			foreach ( WCPBC()->get_regions() as $key => $value ) {
 
 		?>
 			<tr><td colspan="2"><?php echo __( 'Price for', 'woocommerce-product-price-based-countries' ) . ' ' . $value['name']; ?></td></tr>				
@@ -189,16 +189,12 @@ class WCPBC_Admin {
 	/**	
 	 * Add price input to product variation metabox
 	 */
-	function product_variable_attributes_countries_prices( $loop, $variation_data, $variation ) {
-						
-		$countries_groups =  get_option( '_oga_wppbc_countries_groups' );
+	function product_variable_attributes_countries_prices( $loop, $variation_data, $variation ) {							
+		 
+		foreach ( WCPBC()->get_regions() as $key => $value) {
 
-		if ( $countries_groups ) {
-
-			foreach ($countries_groups as $key => $value) {
-
-				$_regular_price = wc_format_localized_price( get_post_meta( $variation->ID, '_' . $key . '_variable_price', true) );
-				$_sale_price = wc_format_localized_price( get_post_meta( $variation->ID, '_' . $key . '_variable_sale_price', true) );
+			$_regular_price = wc_format_localized_price( get_post_meta( $variation->ID, '_' . $key . '_variable_price', true) );
+			$_sale_price = wc_format_localized_price( get_post_meta( $variation->ID, '_' . $key . '_variable_sale_price', true) );
 
 		?>
 
@@ -218,8 +214,7 @@ class WCPBC_Admin {
 			</div>
 
 		<?php 
-
-			} 
+		
 		}
 	}
 
@@ -231,11 +226,9 @@ class WCPBC_Admin {
 	/**
 	 * Save meta data product variation
 	 */
-	function save_product_variation_countries_prices( $variation_id, $i ) {
-			
-		$countries_groups = get_option( '_oga_wppbc_countries_groups' );
+	function save_product_variation_countries_prices( $variation_id, $i ) {				
 		
-		foreach ( $countries_groups as $key => $value ) {
+		foreach ( WCPBC()->get_regions() as $key => $value ) {
 			
 			$meta_key = '_' . $key . '_variable_price';
 			
@@ -290,6 +283,14 @@ class WCPBC_Admin {
 	   		</div>
 			<?php							
 		}
+	}
+
+	function load_admin_script( ) {	
+
+		$suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
+
+		wp_enqueue_script( 'wc-price-based-country-admin', plugin_dir_url( WCPBC_FILE ) . 'assets/js/wcpbc-admin' . $suffix . '.js', array('jquery'), WC_VERSION, true );		
+
 	}
 
 }
