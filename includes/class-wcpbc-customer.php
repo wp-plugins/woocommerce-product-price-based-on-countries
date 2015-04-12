@@ -31,12 +31,14 @@ class WCPBC_Customer {
 	public function __construct() {		
 
 		$this->_data = WC()->session->get( 'wcpbc_customer' );	
-
-		//print_r( WC()->customer->country );
-
+		
 		if ( empty( $this->_data ) || ! in_array( WC()->customer->country, $this->countries ) || ( $this->timestamp < get_option( 'wc_price_based_country_timestamp' ) ) ) {
 
 			$this->set_country( WC()->customer->country );
+		}
+
+		if ( ! WC()->session->has_session() ) {
+			WC()->session->set_customer_session_cookie(true);
 		}
 
 		// When leaving or ending page load, store data
@@ -87,18 +89,15 @@ class WCPBC_Customer {
 				
 		foreach ( WCPBC()->get_regions() as $key => $group_data ) {				
 
-			foreach ( $group_data['countries'] as $country_code ) {
-		
-				if ( $country === $country_code ) {
-
-					$this->_data = array_merge( $group_data, array( 'group_key' => $key, 'timestamp' => time() ) );
-										
-					break 2;
-				}
-			}
+			if ( in_array( $country, $group_data['countries'] ) ) {
+				$this->_data = array_merge( $group_data, array( 'group_key' => $key, 'timestamp' => time() ) );
+				break;
+			}			
+					
 		}
 		
 		$this->_changed = true;
+
 	}
 
 }
