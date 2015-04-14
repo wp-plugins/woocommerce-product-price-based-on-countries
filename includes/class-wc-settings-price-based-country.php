@@ -10,8 +10,7 @@ if ( ! class_exists( 'WC_Settings_Price_Based_Country' ) ) :
  * WooCommerce Price Based Country settings page
  *
  * @class 		WC_Settings_Price_Based_Country
- * @version		1.2.3
- * @category	Class
+ * @version		1.3.0 
  * @author 		oscargare
  */
 class WC_Settings_Price_Based_Country extends WC_Settings_Page {
@@ -250,7 +249,7 @@ class WC_Settings_Price_Based_Country extends WC_Settings_Page {
 		if ( ! isset( $group['countries'] ) ) $group['countries'] = array();
 		if ( ! isset( $group['currency'] ) ) $group['currency'] = get_option('woocommerce_currency');
 		if ( ! isset( $group['empty_price_method'] ) ) $group['empty_price_method'] = '';
-		if ( ! isset( $group['conversion_rate'] ) ) $group['conversion_rate'] = '1';
+		if ( ! isset( $group['exchange_rate'] ) ) $group['exchange_rate'] = '1';
 
 		?>
 		<h3><?php echo $group['name'] ? esc_html( $group['name'] ) : __( 'Add Group', 'woocommerce-product-price-based-countries' ); ?></h3>
@@ -316,21 +315,20 @@ class WC_Settings_Price_Based_Country extends WC_Settings_Page {
 				</th>
 				<td class="forminp forminp-select">
 					<select name="empty_price_method" id="empty_price_method" class="chosen_select">
-						<option value="" <?php echo selected( $group['empty_price_method'], '' ); ?>><?php _e( 'Show WooCommerce regular price' ); ?></option>
-						<option value="conversion_rate" <?php echo selected( $group['empty_price_method'], 'conversion_rate' ); ?>><?php _e( 'Apply a conversion rate' ); ?></option>
+						<option value="" <?php echo selected( $group['empty_price_method'], '' ); ?>><?php _e( 'Show WooCommerce regular price', 'woocommerce-product-price-based-countries' ); ?></option>
+						<option value="exchange_rate" <?php echo selected( $group['empty_price_method'], 'exchange_rate' ); ?>><?php _e( 'Apply a exchange rate', 'woocommerce-product-price-based-countries' ); ?></option>
 					</select>
 				<td>			
 			</tr>
 
-			<!-- Conversion rate -->			
+			<!-- Exchange rate -->			
 			<tr valign="top">
 				<th scope="row" class="titledesc">
-					<label for="conversion_rate"><?php _e( 'Conversion Rate', 'woocommerce-product-price-based-countries' ); ?></label>
-					<?php //echo $tip; ?>
+					<label for="exchange_rate"><?php _e( 'Exchange Rate', 'woocommerce-product-price-based-countries' ); ?></label>
+					<img class="help_tip" data-tip="<?php echo esc_attr( __( "When product price is empty for this region, price will be the result of multiplying WC base price for the exchange rate.", 'woocommerce-product-price-based-countries' ) ); ?>" src="<?php echo WC()->plugin_url(); ?>/assets/images/help.png" height="16" width="16" />
 				</th>
-                <td class="forminp forminp-text">
-                	<span>1 <?php echo get_option('woocommerce_currency'); ?> = </span>
-                	<input name="conversion_rate" id="conversion_rate" type="text" class="short wc_input_price" <?php echo ( $group['empty_price_method']=='' ? 'disabled="disabled"' : ''); ?> value="<?php echo wc_format_localized_price( $group['conversion_rate'] ); ?>"/> 
+                <td class="forminp forminp-text">                	
+                	<input name="exchange_rate" id="exchange_rate" type="text" class="short wc_input_price" <?php echo ( $group['empty_price_method']=='' ? 'disabled="disabled"' : ''); ?> value="<?php echo wc_format_localized_price( $group['exchange_rate'] ); ?>"/> 
                 	<?php //echo $description; ?>
                 </td>
 			</tr>
@@ -397,9 +395,13 @@ class WC_Settings_Price_Based_Country extends WC_Settings_Page {
 
 			WC_Admin_Settings::add_error( __( 'Group name is required.', 'woocommerce-product-price-based-countries' ) );
 
-		} elseif( ! isset( $_POST['group_countries'] ) ) {
+		} elseif ( ! isset( $_POST['group_countries'] ) ) {
 
 			WC_Admin_Settings::add_error( __( 'Add at least one country to the list.', 'woocommerce-product-price-based-countries' ) );
+
+		} elseif ( $_POST['empty_price_method'] == 'exchange_rate' &&  isset( $_POST['exchange_rate'] ) && empty( $_POST['exchange_rate'] ) ) {
+			
+			WC_Admin_Settings::add_error( __( 'Exchange rate must be greater than 0.', 'woocommerce-product-price-based-countries' ) );			
 
 		} else {
 
@@ -414,8 +416,8 @@ class WC_Settings_Price_Based_Country extends WC_Settings_Page {
 			$section_settings[$key]['name'] = $_POST['group_name'];
 			$section_settings[$key]['countries'] = $_POST['group_countries'];
 			$section_settings[$key]['currency'] = $_POST['group_currency'];
-			$section_settings[$key]['empty_price_method'] = $_POST['empty_price_method'];
-			$section_settings[$key]['conversion_rate'] = wc_format_decimal( $_POST['conversion_rate'], 6 );
+			$section_settings[$key]['empty_price_method'] = $_POST['empty_price_method'];			
+			$section_settings[$key]['exchange_rate'] = isset( $_POST['exchange_rate'] ) ? wc_format_decimal( $_POST['exchange_rate'], 6 ) : '';
 			
 			update_option( '_oga_wppbc_countries_groups', $section_settings );
 			

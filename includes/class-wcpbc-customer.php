@@ -7,10 +7,10 @@ if ( ! class_exists( 'WCPBC_Customer' ) ) :
 /**
  * WCPBC_Customer
  *
- * Customer Handler
+ * Store WCPBC frontend data Handler
  *
  * @class 		WCPBC_Customer
- * @version		1.2.3
+ * @version		1.3.0
  * @category	Class
  * @author 		oscargare
  */

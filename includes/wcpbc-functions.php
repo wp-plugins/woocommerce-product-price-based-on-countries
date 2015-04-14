@@ -49,8 +49,9 @@ if ( ! function_exists('country_from_client_ip') ) {
 	function country_from_client_ip() {		
 
 		$debug_ip = get_option( 'wc_price_based_country_debug_ip' );
+		$debug_enabled = get_option( 'wc_price_based_country_debug_mode' );
 
-		if ( defined('WP_DEBUG') && WP_DEBUG && $debug_ip ) {
+		if ( $debug_enabled == 'yes' && ! empty( $debug_ip ) ) {
 
 			$client_ip = $debug_ip;
 

@@ -10,8 +10,7 @@ if ( ! class_exists( 'WCPBC_Admin' ) ) :
  * WooCommerce Price Based Country Admin 
  *
  * @class 		WCPBC_Admin
- * @version		1.2.4
- * @category	Class
+ * @version		1.3.0 
  * @author 		oscargare
  */
 class WCPBC_Admin {
@@ -36,7 +35,7 @@ class WCPBC_Admin {
 		add_action( 'woocommerce_process_product_meta_simple', array( &$this, 'process_product_simple_countries_prices' ) ) ;						
 		
 		if ( WC()->version < '2.3') {
-
+			//Deprecated
 			add_action( 'woocommerce_product_after_variable_attributes', array( &$this, 'product_variable_attributes_countries_prices_wc2_2') , 10, 3 );
 
 		} else {
@@ -81,7 +80,16 @@ class WCPBC_Admin {
 			<div class="wc-metaboxes">
 	<?php 		
 			foreach ( WCPBC()->get_regions() as $key => $value ) {			
-		
+				
+				$_placeholder = '';
+				$_description = '';
+
+				if ( ! empty( $value['empty_price_method'] ) ) {
+
+					$_placeholder = __( 'Auto', 'woocommerce-product-price-based-countries' );	
+					$_description = '<span class="description">' . __( 'Leave blank to apply the specified exchange rate.', 'woocommerce-product-price-based-countries' ) . '</span>';
+				}
+				
 			?>
 				<div class="wc-metabox">
 					<h3>					
@@ -94,7 +102,7 @@ class WCPBC_Admin {
 							<tr>
 								<td>
 									<label style="margin:0px;"><?php echo __( 'Regular Price', 'woocommerce' ) . ' (' . get_woocommerce_currency_symbol($value['currency']) . ')'; ?></label>
-									<input type="text" id="<?php echo '_' . $key . '_price'; ?>" name="<?php echo '_' . $key . '_price'; ?>" value="<?php echo wc_format_localized_price( get_post_meta( get_the_ID(), '_' . $key . '_price' , true ) ); ?>" class="short wc_input_price" />
+									<input type="text" id="<?php echo '_' . $key . '_price'; ?>" name="<?php echo '_' . $key . '_price'; ?>" value="<?php echo wc_format_localized_price( get_post_meta( get_the_ID(), '_' . $key . '_price' , true ) ); ?>" class="short wc_input_price" placeholder="<?php echo $_placeholder; ?>" /><?php echo $_description; ?>
 								</td>
 								<td>
 									<label style="margin:0px;"><?php echo __( 'Sale Price', 'woocommerce' ) . ' (' . get_woocommerce_currency_symbol($value['currency']) . ')'; ?></label>
@@ -150,6 +158,7 @@ class WCPBC_Admin {
 
 			foreach ( WCPBC()->get_regions() as $key => $value ) {
 
+				$placeholder = ( $value['empty_price_method'] == 'exchange_rate' ? __( 'Apply a exchange rate' ) : '' );
 		?>
 			<tr><td colspan="2"><?php echo __( 'Price for', 'woocommerce-product-price-based-countries' ) . ' ' . $value['name']; ?></td></tr>				
 			<tr>				
@@ -162,7 +171,7 @@ class WCPBC_Admin {
 						 
 					?>
 					<label><?php echo __( 'Regular Price', 'woocommerce' ) . ' (' . get_woocommerce_currency_symbol($value['currency']) . ')'; ?></label>
-					<input type="text" name="<?php echo $id . '[' . $loop . ']'; ?>" value="<?php echo $price; ?>" class="wc_input_price" />
+					<input type="text" name="<?php echo $id . '[' . $loop . ']'; ?>" value="<?php echo $price; ?>" class="wc_input_price" placeholder="<?php echo $placeholder; ?>" />
 				</td>							
 
 				<td >
@@ -193,6 +202,15 @@ class WCPBC_Admin {
 		 
 		foreach ( WCPBC()->get_regions() as $key => $value) {
 
+			$_placeholder = '';
+			$_description = '';
+
+			if ( ! empty( $value['empty_price_method'] ) ) {
+
+				$_placeholder = __( 'Auto', 'woocommerce-product-price-based-countries' );	
+				$_description = '<span class="description">' . __( 'Leave blank to apply the specified exchange rate.', 'woocommerce-product-price-based-countries' ) . '</span>';
+			}
+
 			$_regular_price = wc_format_localized_price( get_post_meta( $variation->ID, '_' . $key . '_variable_price', true) );
 			$_sale_price = wc_format_localized_price( get_post_meta( $variation->ID, '_' . $key . '_variable_sale_price', true) );
 
@@ -204,11 +222,11 @@ class WCPBC_Admin {
 
 				<p class="form-row form-row-first">
 					<label><?php echo __( 'Regular Price:', 'woocommerce' ) . ' (' . get_woocommerce_currency_symbol( $value['currency'] ) . ')'; ?></label>
-					<input type="text" size="5" name="<?php echo '_' . $key . '_variable_price[' . $loop. ']'; ?>" value="<?php if ( isset( $_regular_price ) ) echo esc_attr( $_regular_price ); ?>" class="wc_input_price" placeholder="" />
+					<input type="text" size="5" id="<?php echo '_' . $key . '_variable_price_' . $loop; ?>" name="<?php echo '_' . $key . '_variable_price[' . $loop. ']'; ?>" value="<?php if ( isset( $_regular_price ) ) echo esc_attr( $_regular_price ); ?>" class="wc_input_price" placeholder="<?php echo $_placeholder; ?>" /><?php echo $_description; ?>
 				</p>
 				<p class="form-row form-row-last">
 					<label><?php echo __( 'Sale Price:', 'woocommerce' ) . ' (' . get_woocommerce_currency_symbol( $value['currency'] ) . ')'; ?></label>
-					<input type="text" size="5" name="<?php echo '_' . $key . '_variable_sale_price[' . $loop. ']'; ?>" value="<?php if ( isset( $_sale_price ) ) echo esc_attr( $_sale_price ); ?>" class="wc_input_price" />
+					<input type="text" size="5" id="<?php echo '_' . $key . '_variable_sale_price_' . $loop; ?>" name="<?php echo '_' . $key . '_variable_sale_price[' . $loop. ']'; ?>" value="<?php if ( isset( $_sale_price ) ) echo esc_attr( $_sale_price ); ?>" class="wc_input_price wcpbc_sale_price" />
 				</p>
 
 			</div>

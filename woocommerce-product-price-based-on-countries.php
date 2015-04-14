@@ -30,7 +30,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly
 }
 
-if (  in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', get_option( 'active_plugins' ) ) ) ) :	
+if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', get_option( 'active_plugins' ) ) ) ) :	
 
 
 if ( ! class_exists( 'WC_Product_Price_Based_Country' ) ) :
@@ -38,7 +38,8 @@ if ( ! class_exists( 'WC_Product_Price_Based_Country' ) ) :
 /**
  * Main WC Product Price Based Country Class
  *
- * @class WC_Product_Price_Based_Country	 
+ * @class WC_Product_Price_Based_Country
+ * @version	1.3.0	 
  */
 class WC_Product_Price_Based_Country {
 
@@ -53,11 +54,10 @@ class WC_Product_Price_Based_Country {
 	protected $regions = null;
 
 	/**
-	 * Main WooCommerce Instance
+	 * Main WC_Product_Price_Based_Country Instance
 	 *
 	 * Ensures only one instance of WooCommerce is loaded or can be loaded.
-	 *
-	 * @since 1.3.0
+	 *	 
 	 * @static
 	 * @see WCPBC()
 	 * @return Product Price Based Country - Main instance
