@@ -12,8 +12,7 @@ require_once 'class-wcpbc-customer.php';
  * WooCommerce Price Based Country Front-End
  *
  * @class 		WCPBC_Frontend
- * @version		1.2.3
- * @category	Class
+ * @version		1.3.0
  * @author 		oscargare
  */
 class WCPBC_Frontend {
@@ -27,9 +26,11 @@ class WCPBC_Frontend {
 		
 		add_action( 'woocommerce_init', array(&$this, 'init') );		
 
-		add_action( 'woocommerce_checkout_update_order_review', array( &$this, 'checkout_country_update' ) );
-		
 		add_action( 'wp_enqueue_scripts', array( &$this, 'load_checkout_script' ) );
+
+		add_action( 'woocommerce_checkout_update_order_review', array( &$this, 'checkout_country_update' ) );			
+
+		add_action( 'wcpbc_manual_country_selector', array( &$this, 'country_select' ) );
 		
 		add_filter( 'woocommerce_customer_default_location', array( &$this, 'default_customer_country' ) );
 			
@@ -43,18 +44,29 @@ class WCPBC_Frontend {
 		
 		add_filter( 'woocommerce_get_variation_regular_price', array( &$this, 'get_variation_regular_price' ), 10, 4 );
 						
-		add_filter( 'woocommerce_get_variation_price', array( &$this, 'get_variation_price' ), 10, 4 );		
+		add_filter( 'woocommerce_get_variation_price', array( &$this, 'get_variation_price' ), 10, 4 );			
 
 	}		
 
-	function init() {
-
-		//WCPBC_Customer instance
-		$this->customer = new WCPBC_Customer();			
+	/**
+	 * Instance WCPBC Customer after WooCommerce init	 
+	 */
+	public function init() {
+				
+		if ( isset($_POST['wcpbc-manual-country']) && $_POST['wcpbc-manual-country'] ) {			
+			
+			WC()->customer->set_country($_POST['wcpbc-manual-country']);
+		}
+				
+		$this->customer = new WCPBC_Customer();						
+		
 
 	}
 
-	function load_checkout_script( ) {
+	/**
+	 * Add script to checkout page	 
+	 */
+	public function load_checkout_script( ) {
 
 		if ( is_checkout() ) {
 
@@ -65,21 +77,65 @@ class WCPBC_Frontend {
 
 	}
 
-	function checkout_country_update( $post_data ) {			
+	/**
+	 * Update WCPBC Customer country when order review is update
+	 */
+	public function checkout_country_update( $post_data ) {			
 		
-		if ( isset( $_POST['country'] ) && $_POST['country'] !== $this->customer->country ) {
+		if ( isset( $_POST['country'] ) && ! in_array( $_POST['country'] , $this->customer->countries ) ) {
 			
 			$this->customer->set_country( $_POST['country'] );
 						
 		}
 	}
 
-	function default_customer_country( $country ) {
+	/**
+	 * Output manual country select form
+	 */
+	public function country_select() {
+
+		$all_countries = WC()->countries->get_countries();		
+		$base_country = wc_get_base_location();			
+
+		$countries[ $base_country['country'] ] = $all_countries[$base_country['country']];
+
+		foreach ( WCPBC()->get_regions() as $region ) {
+			
+			foreach ( $region['countries'] as $country ) {
+
+				if ( ! array_key_exists( $country, $countries ) ) {
+					$countries[ $country ] = $all_countries[$country];					
+				}
+			}			
+		}
+
+		asort( $countries );
 		
-		return country_from_client_ip();			
+		$other_country = key( array_diff_key($all_countries, $countries ) );
+		
+		$countries[$other_country] = apply_filters( 'wcpbc_other_countries_text', __( 'Other countries' ) );	
+
+		wc_get_template('country-selector.php', array( 'countries' => $countries ), 'woocommerce-product-price-based-on-countries/', untrailingslashit( plugin_dir_path( WCPBC_FILE ) ) . '/templates/' );
+	}
+
+	/**
+	 * Return default WC customer country from IP
+	 * @return string
+	 */
+	public function default_customer_country( $country ) {
+		
+		$wppbc_country = country_from_client_ip();
+		if ( $wppbc_country ) {
+			return $wppbc_country;
+		}
+		return $country;			
 	}	
 
-	function currency( $currency ) {
+	/**
+	 * Return currency
+	 * @return string currency
+	 */
+	public function currency( $currency ) {
 
 		$wppbc_currency = $currency;
 		
@@ -92,7 +148,11 @@ class WCPBC_Frontend {
 		return $wppbc_currency;
 	}		
 
-	function get_regular_price ( $price, $product, $price_meta_key = '_price' ) {	
+	/**
+	 * Returns the product's regular price
+	 * @return string price
+	 */
+	public function get_regular_price ( $price, $product, $price_meta_key = '_price' ) {	
 		
 		$wppbc_price = $price;
 		
@@ -112,20 +172,38 @@ class WCPBC_Frontend {
 						
 			$wppbc_price = get_post_meta( $post_id, $meta_key, true );
 			
-			$wppbc_price = ($wppbc_price == '' OR $wppbc_price == 0) ? $price : $wppbc_price;										
+			if ( $wppbc_price === '' OR $wppbc_price == 0 ) {
+
+				if ( $this->customer->empty_price_method ) {
+					$wppbc_price = ($price * $this->customer->exchange_rate);
+
+				} else {
+					$wppbc_price = $price;
+				}
+			}
 			
 		}
 			
 		return $wppbc_price;
 	}
 
-	function get_sale_price ( $price, $product ) {	
+	
+	/**
+	 * Returns the product's sale price
+	 * @return string price
+	 */
+	public function get_sale_price ( $price, $product ) {	
 		
 		return $this->get_regular_price( $price, $product, '_sale_price');
 
 	}
 	
-	function get_price ($price, $product) {			
+
+	/**
+	 * Returns the product's active price.	 
+	 * @return string price
+	 */
+	public function get_price ($price, $product) {			
 		
 		$wcpbc_sale_price = $this->get_sale_price( '', $product );
 
@@ -134,8 +212,13 @@ class WCPBC_Frontend {
 		return $wcpbc_price;
 	}
 	
-	
-	function get_variation_regular_price( $price, $product, $min_or_max, $display ) {
+	/**
+	 * Get the min or max variation regular price.
+	 * @param  string $min_or_max - min or max
+	 * @param  boolean  $display Whether the value is going to be displayed
+	 * @return string price
+	 */
+	public function get_variation_regular_price( $price, $product, $min_or_max, $display ) {
 		
 		$wppbc_price = $price;		
 			
@@ -177,8 +260,13 @@ class WCPBC_Frontend {
 		return $wppbc_price;
 	}
 	
-	
-	function get_variation_price( $price, $product, $min_or_max, $display ) {		
+	/**
+	 * Get the min or max variation active price.
+	 * @param  string $min_or_max - min or max
+	 * @param  boolean  $display Whether the value is going to be displayed
+	 * @return string price
+	 */		
+	public function get_variation_price( $price, $product, $min_or_max, $display ) {		
 		
 		$wppbc_price = $price;		
 			
