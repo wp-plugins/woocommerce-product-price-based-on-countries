@@ -2,8 +2,8 @@
 Contributors: oscargare
 Tags: price based country, dynamic price based country, price by country, dynamic price, woocommerce, geoip
 Requires at least: 3.6.1
-Tested up to: 4.1.1
-Stable tag: 1.3.0
+Tested up to: 4.2.2
+Stable tag: 1.3.1
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -44,7 +44,7 @@ This product includes GeoLite2 data created by MaxMind, available from http://ww
 1. Go to WooCommerce -> Settings -> Product Price Based on Country and configure as required. The first time it will download GeoIp database.
 1. Go to the product page and sets the price for the countries you have configured avobe.
 
-= Country Selector (optional) =
+= Country Selector (for developers) =
 
 1. Add action "wcpbc_manual_country_selector" to your theme.
 1. To customize the country selector:
@@ -83,6 +83,9 @@ You should do the test in a private browsing window to prevent data stored in th
 4. /assets/screenshot-4.png
 
 == Changelog ==
+
+= 1.3.1 =
+* Fixed: Price before discount not show for variable products with sale price.
 
 = 1.3.0 =
 * Added: Exchange rate to apply when price leave blank.

@@ -12,7 +12,7 @@ require_once 'class-wcpbc-customer.php';
  * WooCommerce Price Based Country Front-End
  *
  * @class 		WCPBC_Frontend
- * @version		1.3.0
+ * @version		1.3.1
  * @author 		oscargare
  */
 class WCPBC_Frontend {
@@ -205,9 +205,9 @@ class WCPBC_Frontend {
 	 */
 	public function get_price ($price, $product) {			
 		
-		$wcpbc_sale_price = $this->get_sale_price( '', $product );
+		$sale_price = $product->get_sale_price();
 
-		$wcpbc_price = ( $wcpbc_sale_price != '' && $wcpbc_sale_price > 0 )? $wcpbc_sale_price : $this->get_regular_price( $price, $product );		
+		$wcpbc_price = ( $sale_price !== '' && $sale_price > 0 )? $sale_price : $this->get_regular_price( $price, $product );
 		
 		return $wcpbc_price;
 	}
@@ -218,8 +218,8 @@ class WCPBC_Frontend {
 	 * @param  boolean  $display Whether the value is going to be displayed
 	 * @return string price
 	 */
-	public function get_variation_regular_price( $price, $product, $min_or_max, $display ) {
-		
+	public function get_variation_regular_price( $price, $product, $min_or_max, $display, $price_meta_key = '_regular_price') {
+
 		$wppbc_price = $price;		
 			
 		$tax_display_mode = get_option( 'woocommerce_tax_display_shop' );
@@ -227,16 +227,18 @@ class WCPBC_Frontend {
 		$prices = array();
 		
 		$display = array();
-				
+		
+		$price_func = 'get' . $price_meta_key;
+
 		foreach ($product->get_children() as $variation_id) {
 			
 			$variation = $product->get_child( $variation_id );
 			
 			if ( $variation ) {
-				
-				$prices[$variation_id] = $variation->get_price();
-				
-				$display[$variation_id] = $tax_display_mode == 'incl' ? $variation->get_price_including_tax() : $variation->get_price_excluding_tax();
+								
+				$prices[$variation_id] = $this->$price_func( $price, $variation );							
+
+				$display[$variation_id] = ( $tax_display_mode == 'incl' ) ? $variation->get_price_including_tax( 1, $prices[$variation_id] ) : $variation->get_price_excluding_tax( 1, $prices[$variation_id] );
 			}				 
 		}			
 		
@@ -245,17 +247,16 @@ class WCPBC_Frontend {
 		} else {
 			arsort($prices);
 		}		
-			
+		
 		if ( $display ) {
 			
 			$variation_id = key( $prices );				
 			$wppbc_price = $display[$variation_id];
 			
-		} else {
-							
+		} else {			
 			$wppbc_price = current($prices);
 			
-		}			
+		}
 		
 		return $wppbc_price;
 	}
@@ -268,14 +269,7 @@ class WCPBC_Frontend {
 	 */		
 	public function get_variation_price( $price, $product, $min_or_max, $display ) {		
 		
-		$wppbc_price = $price;		
-			
-		if (! $product->get_variation_sale_price($min_or_max) ) {						
-			
-			$wppbc_price = $this->get_variation_regular_price( $price, $product, $min_or_max, $display );															
-		}	
-		
-		return $wppbc_price;
+		return $this->get_variation_regular_price( $price, $product, $min_or_max, $display, '_price' );		
 	}	
 		 
 }
