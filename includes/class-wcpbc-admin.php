@@ -10,13 +10,23 @@ if ( ! class_exists( 'WCPBC_Admin' ) ) :
  * WooCommerce Price Based Country Admin 
  *
  * @class 		WCPBC_Admin
- * @version		1.2.3
- * @category	Class
+ * @version		1.3.0 
  * @author 		oscargare
  */
 class WCPBC_Admin {
 
 	function __construct(){
+		
+		add_action('init', array(&$this, 'init'));
+
+		add_action( 'admin_enqueue_scripts', array( &$this, 'load_admin_script' ) );
+
+	}
+
+	/**
+	 * Hook actions and filters
+	 */
+	function init() {
 
 		add_filter('woocommerce_get_settings_pages', array( &$this, 'settings_price_based_country' ) );
 		
@@ -24,7 +34,15 @@ class WCPBC_Admin {
 		
 		add_action( 'woocommerce_process_product_meta_simple', array( &$this, 'process_product_simple_countries_prices' ) ) ;						
 		
-		add_action( 'woocommerce_product_after_variable_attributes', array( &$this, 'product_variable_attributes_countries_prices') , 10, 3 );
+		if ( WC()->version < '2.3') {
+			//Deprecated
+			add_action( 'woocommerce_product_after_variable_attributes', array( &$this, 'product_variable_attributes_countries_prices_wc2_2') , 10, 3 );
+
+		} else {
+
+			add_action( 'woocommerce_product_after_variable_attributes', array( &$this, 'product_variable_attributes_countries_prices') , 10, 3 );
+		}
+				
 		
 		add_action( 'woocommerce_process_product_meta_variable', array( &$this, 'process_product_variable_countries_prices' ) );
 		
@@ -32,7 +50,7 @@ class WCPBC_Admin {
 
 		add_filter( 'woocommerce_currency',  array( &$this, 'order_currency' ) );
 
-		add_action( 'admin_notices', array( &$this, 'check_database_file' ) );
+		add_action( 'admin_notices', array( &$this, 'check_database_file' ) );	
 
 	}
 
@@ -49,60 +67,71 @@ class WCPBC_Admin {
 	/**
 	 * Add price input to product simple metabox
 	 */
-	function product_options_countries_prices() {		
+	function product_options_countries_prices() {					
+
+		if ( count( WCPBC()->get_regions() ) ) {
 	?>		
-		<div class="options_group show_if_simple show_if_external wc-metaboxes-wrapper">			
+		<div class="options_group show_if_simple show_if_external wc-metaboxes-wrapper" style="margin-bottom: 25px;">			
 			<p class="toolbar">				
 				<a href="#" class="close_all"><?php _e( 'Close all', 'woocommerce' ); ?></a><a href="#" class="expand_all"><?php _e( 'Expand all', 'woocommerce' ); ?></a>
 				<strong>Price Based on Country</strong>
 			</p>
 
 			<div class="wc-metaboxes">
-	<?php 
-		$countries_groups =  get_option( '_oga_wppbc_countries_groups' );
+	<?php 		
+			foreach ( WCPBC()->get_regions() as $key => $value ) {			
+				
+				$_placeholder = '';
+				$_description = '';
 
-		foreach ($countries_groups as $key => $value ) {
-	?>
+				if ( ! empty( $value['empty_price_method'] ) ) {
+
+					$_placeholder = __( 'Auto', 'woocommerce-product-price-based-countries' );	
+					$_description = '<span class="description">' . __( 'Leave blank to apply the specified exchange rate.', 'woocommerce-product-price-based-countries' ) . '</span>';
+				}
+				
+			?>
 				<div class="wc-metabox">
 					<h3>					
 						<div class="handlediv" title="<?php _e( 'Click to toggle', 'woocommerce' ); ?>"></div>
 						<strong class=""><?php echo __( 'Price for', 'woocommerce-product-price-based-countries' ) . ' ' .$value['name'] ;?></strong>
 					</h3>
-					<table cellpadding="0" cellspacing="0" class="wc-metabox-content">
+					<div class="wc-metabox-content">
+					<table cellpadding="0" cellspacing="0" class="">
 						<tbody>
 							<tr>
 								<td>
 									<label style="margin:0px;"><?php echo __( 'Regular Price', 'woocommerce' ) . ' (' . get_woocommerce_currency_symbol($value['currency']) . ')'; ?></label>
-									<input type="text" id="<?php echo '_' . $key . '_price'; ?>" name="<?php echo '_' . $key . '_price'; ?>" value="<?php echo wc_format_localized_price( get_post_meta( get_the_ID(), '_' . $key . '_price' , true ) ); ?>" class="short wc_input_price" />
+									<input type="text" id="<?php echo '_' . $key . '_price'; ?>" name="<?php echo '_' . $key . '_price'; ?>" value="<?php echo wc_format_localized_price( get_post_meta( get_the_ID(), '_' . $key . '_price' , true ) ); ?>" class="short wc_input_price" placeholder="<?php echo $_placeholder; ?>" /><?php echo $_description; ?>
 								</td>
 								<td>
 									<label style="margin:0px;"><?php echo __( 'Sale Price', 'woocommerce' ) . ' (' . get_woocommerce_currency_symbol($value['currency']) . ')'; ?></label>
-									<input type="text" id="<?php echo '_' . $key . '_sale_price'; ?>" name="<?php echo '_' . $key . '_sale_price'; ?>" value="<?php echo wc_format_localized_price( get_post_meta( get_the_ID(), '_' . $key . '_sale_price' , true ) ); ?>" class="wc_input_price" />								
+									<input type="text" id="<?php echo '_' . $key . '_sale_price'; ?>" name="<?php echo '_' . $key . '_sale_price'; ?>" value="<?php echo wc_format_localized_price( get_post_meta( get_the_ID(), '_' . $key . '_sale_price' , true ) ); ?>" class="wc_input_price wcpbc_sale_price" />								
 								</td>
 							</tr>
 						</tbody>
 					</table>					
+					</div>
 				</div>
 
-	<?php
+			<?php
 
-		}
+				}			
 
-	?>
+			?>
+
 			</div>
 		</div>
 	<?php				
-				
+		}
 	}
 	
 	/**
 	 * Save meta data product simple
 	 */
-	function process_product_simple_countries_prices( $post_id ) {
+	function process_product_simple_countries_prices( $post_id ) {				
 		
-		$countries_groups =  get_option( '_oga_wppbc_countries_groups' );
-		
-		foreach ($countries_groups as $key => $value ) {
+		foreach ( WCPBC()->get_regions() as $key => $value ) {
 			
 			$id = '_' . $key . '_price';			
 			
@@ -116,20 +145,20 @@ class WCPBC_Admin {
 	}
 	
 	/**
+	 * Deprecated for Woocommerce 2.2
 	 * Add price input to product variation metabox
 	 */
-	function product_variable_attributes_countries_prices( $loop, $variation_data, $variation ) {
-
-		$countries_groups = get_option( '_oga_wppbc_countries_groups' );
+	function product_variable_attributes_countries_prices_wc2_2( $loop, $variation_data, $variation ) {	
 		
-		if ( $countries_groups ) {
+		if ( count( WCPBC()->get_regions() ) ) {
 
 		?>
 			<tr><td colspan="2"><strong>Price Based on Country<strong></td></tr>
 		<?php
 
-			foreach ($countries_groups as $key => $value ) {
+			foreach ( WCPBC()->get_regions() as $key => $value ) {
 
+				$placeholder = ( $value['empty_price_method'] == 'exchange_rate' ? __( 'Apply a exchange rate' ) : '' );
 		?>
 			<tr><td colspan="2"><?php echo __( 'Price for', 'woocommerce-product-price-based-countries' ) . ' ' . $value['name']; ?></td></tr>				
 			<tr>				
@@ -142,7 +171,7 @@ class WCPBC_Admin {
 						 
 					?>
 					<label><?php echo __( 'Regular Price', 'woocommerce' ) . ' (' . get_woocommerce_currency_symbol($value['currency']) . ')'; ?></label>
-					<input type="text" name="<?php echo $id . '[' . $loop . ']'; ?>" value="<?php echo $price; ?>" class="wc_input_price" />
+					<input type="text" name="<?php echo $id . '[' . $loop . ']'; ?>" value="<?php echo $price; ?>" class="wc_input_price" placeholder="<?php echo $placeholder; ?>" />
 				</td>							
 
 				<td >
@@ -166,6 +195,47 @@ class WCPBC_Admin {
 		
 	}
 	
+	/**	
+	 * Add price input to product variation metabox
+	 */
+	function product_variable_attributes_countries_prices( $loop, $variation_data, $variation ) {							
+		 
+		foreach ( WCPBC()->get_regions() as $key => $value) {
+
+			$_placeholder = '';
+			$_description = '';
+
+			if ( ! empty( $value['empty_price_method'] ) ) {
+
+				$_placeholder = __( 'Auto', 'woocommerce-product-price-based-countries' );	
+				$_description = '<span class="description">' . __( 'Leave blank to apply the specified exchange rate.', 'woocommerce-product-price-based-countries' ) . '</span>';
+			}
+
+			$_regular_price = wc_format_localized_price( get_post_meta( $variation->ID, '_' . $key . '_variable_price', true) );
+			$_sale_price = wc_format_localized_price( get_post_meta( $variation->ID, '_' . $key . '_variable_sale_price', true) );
+
+		?>
+
+			<div style="width:100%; overflow:auto; padding-right:10px;border-top:1px solid #eee;">
+
+				<p><strong><?php echo __( 'Price for', 'woocommerce-product-price-based-countries' ) . ' ' . $value['name']; ?></strong></p>
+
+				<p class="form-row form-row-first">
+					<label><?php echo __( 'Regular Price:', 'woocommerce' ) . ' (' . get_woocommerce_currency_symbol( $value['currency'] ) . ')'; ?></label>
+					<input type="text" size="5" id="<?php echo '_' . $key . '_variable_price_' . $loop; ?>" name="<?php echo '_' . $key . '_variable_price[' . $loop. ']'; ?>" value="<?php if ( isset( $_regular_price ) ) echo esc_attr( $_regular_price ); ?>" class="wc_input_price" placeholder="<?php echo $_placeholder; ?>" /><?php echo $_description; ?>
+				</p>
+				<p class="form-row form-row-last">
+					<label><?php echo __( 'Sale Price:', 'woocommerce' ) . ' (' . get_woocommerce_currency_symbol( $value['currency'] ) . ')'; ?></label>
+					<input type="text" size="5" id="<?php echo '_' . $key . '_variable_sale_price_' . $loop; ?>" name="<?php echo '_' . $key . '_variable_sale_price[' . $loop. ']'; ?>" value="<?php if ( isset( $_sale_price ) ) echo esc_attr( $_sale_price ); ?>" class="wc_input_price wcpbc_sale_price" />
+				</p>
+
+			</div>
+
+		<?php 
+		
+		}
+	}
+
 	function process_product_variable_countries_prices( $post_id ) {
 		/*for future versions; process and save de min and max variation price*/ 
 		
@@ -174,11 +244,9 @@ class WCPBC_Admin {
 	/**
 	 * Save meta data product variation
 	 */
-	function save_product_variation_countries_prices( $variation_id, $i ) {
-			
-		$countries_groups = get_option( '_oga_wppbc_countries_groups' );
+	function save_product_variation_countries_prices( $variation_id, $i ) {				
 		
-		foreach ( $countries_groups as $key => $value ) {
+		foreach ( WCPBC()->get_regions() as $key => $value ) {
 			
 			$meta_key = '_' . $key . '_variable_price';
 			
@@ -233,6 +301,14 @@ class WCPBC_Admin {
 	   		</div>
 			<?php							
 		}
+	}
+
+	function load_admin_script( ) {	
+
+		$suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
+
+		wp_enqueue_script( 'wc-price-based-country-admin', plugin_dir_url( WCPBC_FILE ) . 'assets/js/wcpbc-admin' . $suffix . '.js', array('jquery'), WC_VERSION, true );		
+
 	}
 
 }

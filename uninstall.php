@@ -22,7 +22,7 @@ delete_option( 'wc_price_based_country_timestamp' );
 
 // unlink geoip db
 
-$geoip_db = p_upload_dir();
+$geoip_db = wp_upload_dir();
 $geoip_db = $geoip_db['basedir'] . '/wc-price-based-country/GeoLite2-Country.mmdb';
 
 if ( file_exists($geoip_db) ) 

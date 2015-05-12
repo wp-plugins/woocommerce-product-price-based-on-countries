@@ -12,16 +12,6 @@ use GeoIp2\Database\Reader;
 if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
 
 /**
- * Constants
- *
- */
-$upload_dir = wp_upload_dir();
-
-define( 'WCPBC_UPLOAD_DIR', $upload_dir['basedir'] . '/wc_price_based_country' );
-define( 'WCPBC_GEOIP_DB', WCPBC_UPLOAD_DIR . '/GeoLite2-Country.mmdb' );
-
-
-/**
  * Retrun country IsoCode from IP
  *
  * @return String
@@ -56,11 +46,12 @@ if ( ! function_exists('get_country_from_ip') ) {
 
 if ( ! function_exists('country_from_client_ip') ) {
 
-	function country_from_client_ip() {	
+	function country_from_client_ip() {		
 
 		$debug_ip = get_option( 'wc_price_based_country_debug_ip' );
+		$debug_enabled = get_option( 'wc_price_based_country_debug_mode' );
 
-		if ( get_option( 'wc_price_based_country_debug_mode' ) == 'yes' && $debug_ip ) {
+		if ( $debug_enabled == 'yes' && ! empty( $debug_ip ) ) {
 
 			$client_ip = $debug_ip;
 
@@ -84,58 +75,6 @@ if ( ! function_exists('country_from_client_ip') ) {
 		return get_country_from_ip( $client_ip );
 	}
 }
-
-
-/**
- * Conditional to test for bot user agent.
- *
- * @return boolean
- */
-if ( ! function_exists('is_bot') ) {
-
-	function is_bot() {
-
-		$user_agent = strtolower ( $_SERVER['HTTP_USER_AGENT'] );
-
-		return preg_match ( "/googlebot|adsbot|yahooseeker|yahoobot|msnbot|watchmouse|pingdom\.com|feedfetcher-google/", $user_agent );
-	}
-}
-
-/**
- * Test for load admin class
- *
- * @return boolean
-*/
-if ( ! function_exists('wc_price_based_country_is_admin') ) {
-
-	function wc_price_based_country_is_admin() {
-		
-		$is_ajax = defined('DOING_AJAX') && DOING_AJAX;
-
-		$ajax_allow_actions = array( 'woocommerce_add_variation' );
-
-		return ( is_admin() && !$is_ajax ) || ( is_admin() && $is_ajax && isset( $_POST['action'] ) && in_array( $_POST['action'], $ajax_allow_actions ) );
-	}
-}
-
-/**
- * Test for load frontend class
- *
- * @return boolean
-*/
-if ( ! function_exists('wc_price_based_country_is_frontend') ) {
-
-	function wc_price_based_country_is_frontend() {
-		
-		$is_ajax = defined('DOING_AJAX') && DOING_AJAX;
-
-		$ajax_allow_actions = array( 'woocommerce_update_order_review' );
-
-		//return ! is_bot() && file_exists( WCPBC_GEOIP_DB ) && ( ! is_admin() || ( is_admin() && $is_ajax && isset( $_POST['action'] ) && in_array( $_POST['action'], $ajax_allow_actions ) ) );
-		return ! is_bot() && file_exists( WCPBC_GEOIP_DB ) && ( ! is_admin() || ( is_admin() && $is_ajax ) );
-	}
-}
-
 
 /**
  * Download GeoIp Database
