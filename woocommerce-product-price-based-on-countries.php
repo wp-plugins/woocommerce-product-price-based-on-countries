@@ -5,7 +5,7 @@
  Plugin URI: https://wordpress.org/plugins/woocommerce-product-price-based-on-countries/
  Description: Sets products prices based on country of your site's visitor.
  Author: Oscar Garcia Arenas
- Version: 1.3.1
+ Version: 1.3.2
  Author URI: google.com/+OscarGarciaArenas
  License: GPLv2
 */
@@ -39,9 +39,14 @@ if ( ! class_exists( 'WC_Product_Price_Based_Country' ) ) :
  * Main WC Product Price Based Country Class
  *
  * @class WC_Product_Price_Based_Country
- * @version	1.3.0	 
+ * @version	1.3.2	 
  */
 class WC_Product_Price_Based_Country {
+
+	/**
+	 * @var string
+	 */
+	public $version = '1.3.2';
 
 	/**
 	 * @var The single instance of the class		 
@@ -72,10 +77,11 @@ class WC_Product_Price_Based_Country {
 	/**
 	 * WC_Product_Price_Based_Country Constructor.
 	 */
-	public function __construct() {				
+	public function __construct() {						
 
-		$this->define_constants();
-		$this->includes();		
+		$this->includes();
+
+		register_activation_hook( __FILE__, array( 'WCPBC_Install', 'install' ) );	
 	}
 
 	
@@ -87,29 +93,11 @@ class WC_Product_Price_Based_Country {
 
 		if ( is_null( $this->regions ) ) {
 
-			$regions = get_option( '_oga_wppbc_countries_groups' );
-
-			if ( ! $regions ) {
-				$regions = array();
-			}
-
-			$this->regions =  $regions;		
+			$this->regions = get_option( 'wc_price_based_country_regions', array() );			
 		}		
 
 		return $this->regions;
-	}
-
-	/**
-	 * Define WCPBC Constants
-	 */
-	private function define_constants() {
-
-		$upload_dir = wp_upload_dir();
-
-		define( 'WCPBC_FILE', __FILE__ );
-		define( 'WCPBC_UPLOAD_DIR', $upload_dir['basedir'] . '/wc_price_based_country' );
-		define( 'WCPBC_GEOIP_DB', WCPBC_UPLOAD_DIR . '/GeoLite2-Country.mmdb' );	
-	}
+	}	
 
 	/**
 	 * What type of request is this?
@@ -126,7 +114,7 @@ class WC_Product_Price_Based_Country {
 				return ( is_admin() && !$is_ajax ) || ( is_admin() && $is_ajax && isset( $_POST['action'] ) && in_array( $_POST['action'], $ajax_allow_actions ) );
 			
 			case 'frontend' :
-				return ! $this->is_request('bot') && file_exists( WCPBC_GEOIP_DB ) && ( ! is_admin() || ( is_admin() && $is_ajax ) ) && ! defined( 'DOING_CRON' );
+				return ! $this->is_request('bot') && ( ! is_admin() || ( is_admin() && $is_ajax ) ) && ! defined( 'DOING_CRON' );
 
 			case 'bot':
 				$user_agent = strtolower ( $_SERVER['HTTP_USER_AGENT'] );
@@ -137,18 +125,33 @@ class WC_Product_Price_Based_Country {
 	/**
 	 * Include required files used in admin and on the frontend.
 	 */
-	public function includes() {
-
-		include_once 'includes/wcpbc-functions.php';
+	public function includes() {		
 
 		if ( $this->is_request( 'admin') ) {
-
+			include_once 'includes/class-wcpbc-install.php';	
 			include_once 'includes/class-wcpbc-admin.php';	
 
 		} elseif ( $this->is_request( 'frontend') ) {
 
 			require_once 'includes/class-wcpbc-frontend.php';						
 		}
+	}
+
+	/**
+	 * Get the plugin url.
+	 * @return string
+	 */
+	public function plugin_url() {		
+		return plugin_dir_url( __FILE__ );
+	}
+
+	/**
+	 * Get the plugin path.
+	 * @return string
+	 */
+	
+	public function plugin_path(){
+		return plugin_dir_path( __FILE__ );
 	}
 
 }	//End Class

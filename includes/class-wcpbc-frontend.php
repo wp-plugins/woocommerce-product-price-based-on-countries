@@ -12,7 +12,7 @@ require_once 'class-wcpbc-customer.php';
  * WooCommerce Price Based Country Front-End
  *
  * @class 		WCPBC_Frontend
- * @version		1.3.1
+ * @version		1.3.2
  * @author 		oscargare
  */
 class WCPBC_Frontend {
@@ -28,23 +28,25 @@ class WCPBC_Frontend {
 
 		add_action( 'wp_enqueue_scripts', array( &$this, 'load_checkout_script' ) );
 
-		add_action( 'woocommerce_checkout_update_order_review', array( &$this, 'checkout_country_update' ) );			
+		add_action( 'woocommerce_checkout_update_order_review', array( &$this, 'checkout_country_update' ) );									
 
 		add_action( 'wcpbc_manual_country_selector', array( &$this, 'country_select' ) );
-		
-		add_filter( 'woocommerce_customer_default_location', array( &$this, 'default_customer_country' ) );
-			
+
 		add_filter( 'woocommerce_currency',  array( &$this, 'currency' ) );
+
+		add_filter('woocommerce_get_price', array( &$this, 'get_price' ), 10, 2 );
 
 		add_filter( 'woocommerce_get_regular_price', array( &$this, 'get_regular_price') , 10, 2 );
 
-		add_filter( 'woocommerce_get_sale_price', array( &$this, 'get_sale_price') , 10, 2 );
-		
-		add_filter('woocommerce_get_price', array( &$this, 'get_price' ), 10, 2 );
-		
-		add_filter( 'woocommerce_get_variation_regular_price', array( &$this, 'get_variation_regular_price' ), 10, 4 );
+		add_filter( 'woocommerce_get_sale_price', array( &$this, 'get_sale_price') , 10, 2 );								
 						
-		add_filter( 'woocommerce_get_variation_price', array( &$this, 'get_variation_price' ), 10, 4 );			
+		add_filter( 'woocommerce_get_variation_price', array( &$this, 'get_variation_price' ), 10, 4 );		
+
+		add_filter( 'woocommerce_get_variation_regular_price', array( &$this, 'get_variation_regular_price' ), 10, 4 );	
+
+		add_filter( 'woocommerce_get_sale_regular_price', array( &$this, 'get_variation_sale_price' ), 10, 4 );		
+		
+		add_shortcode( 'country_selector', array( &$this, 'country_select' ) );
 
 	}		
 
@@ -52,14 +54,22 @@ class WCPBC_Frontend {
 	 * Instance WCPBC Customer after WooCommerce init	 
 	 */
 	public function init() {
-				
-		if ( isset($_POST['wcpbc-manual-country']) && $_POST['wcpbc-manual-country'] ) {			
+		
+		if ( ! isset( $_POST['wcpbc-manual-country'] ) && get_option('wc_price_based_country_test_mode', 'no') === 'yes' && $test_country = get_option('wc_price_based_country_test_country') ) {
+
+			/* set test country */
+			WC()->customer->set_country( $test_country );
+
+			/* add test store message */
+			add_action( 'wp_footer', array( &$this, 'test_store' ) );
+
+		} elseif ( isset( $_POST['wcpbc-manual-country'] ) && $_POST['wcpbc-manual-country'] ) {			
 			
+			/* set customer WooCommerce customer country*/
 			WC()->customer->set_country($_POST['wcpbc-manual-country']);
 		}
-				
-		$this->customer = new WCPBC_Customer();						
-		
+
+		$this->customer = new WCPBC_Customer();								
 
 	}
 
@@ -72,7 +82,7 @@ class WCPBC_Frontend {
 
 			$suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
 
-			wp_enqueue_script( 'wc-price-based-country-checkout', plugin_dir_url( WCPBC_FILE ) . 'assets/js/wcpbc-checkout' . $suffix . '.js', array( 'wc-checkout', 'wc-cart-fragments' ), WC_VERSION, true );
+			wp_enqueue_script( 'wc-price-based-country-checkout', WCPBC()->plugin_url() . 'assets/js/wcpbc-checkout' . $suffix . '.js', array( 'wc-checkout', 'wc-cart-fragments' ), WC_VERSION, true );
 		}
 
 	}
@@ -115,22 +125,17 @@ class WCPBC_Frontend {
 		
 		$countries[$other_country] = apply_filters( 'wcpbc_other_countries_text', __( 'Other countries' ) );	
 
-		wc_get_template('country-selector.php', array( 'countries' => $countries ), 'woocommerce-product-price-based-on-countries/', untrailingslashit( plugin_dir_path( WCPBC_FILE ) ) . '/templates/' );
+		wc_get_template('country-selector.php', array( 'countries' => $countries ), 'woocommerce-product-price-based-on-countries/',  WCPBC()->plugin_path()  . '/templates/' );
 	}
 
 	/**
-	 * Return default WC customer country from IP
-	 * @return string
+	 * Return test store message 
 	 */
-	public function default_customer_country( $country ) {
-		
-		$wppbc_country = country_from_client_ip();
-		if ( $wppbc_country ) {
-			return $wppbc_country;
-		}
-		return $country;			
-	}	
+	public function test_store() {
 
+		echo '<p class="demo_store">This is a demo store for testing purposes.</p>' ;
+	}
+	
 	/**
 	 * Return currency
 	 * @return string currency
@@ -147,46 +152,56 @@ class WCPBC_Frontend {
 		
 		return $wppbc_currency;
 	}		
-
+	
 	/**
-	 * Returns the product's regular price
+	 * Returns the product's active price.
 	 * @return string price
 	 */
-	public function get_regular_price ( $price, $product, $price_meta_key = '_price' ) {	
+	public function get_price ( $price, $product, $price_type = '_price' ) {	
 		
-		$wppbc_price = $price;
+		$wcpbc_price = $price;
 		
-		if ( $this->customer->group_key !== '' ) {					
+		if ( $this->customer->group_key ) {					
 			
+			$meta_key_preffix = '_' . $this->customer->group_key;
+
 			if ( get_class( $product ) == 'WC_Product_Variation' ) {
 				
 				$post_id = $product->variation_id;	
-				$meta_key = '_' . $this->customer->group_key . '_variable' . $price_meta_key;
+
+				$meta_key_preffix .= '_variable';
+				
+			} else {
+				$post_id = $product->id; 
+			}
+			
+			$price_method = get_post_meta( $post_id, $meta_key_preffix . '_price_method', true ); 
+
+			if ( $price_method === 'manual') {
+
+				$wcpbc_price = get_post_meta( $post_id, $meta_key_preffix . $price_type, true );
 
 			} else {
 
-				$post_id = $product->id;  
-				$meta_key = '_' . $this->customer->group_key . $price_meta_key;
+				if ( $this->customer->exchange_rate) {
 
-			}		
-						
-			$wppbc_price = get_post_meta( $post_id, $meta_key, true );
-			
-			if ( $wppbc_price === '' OR $wppbc_price == 0 ) {
+					$wcpbc_price = ( $price * $this->customer->exchange_rate );
+				}				
 
-				if ( $this->customer->empty_price_method ) {
-					$wppbc_price = ($price * $this->customer->exchange_rate);
-
-				} else {
-					$wppbc_price = $price;
-				}
-			}
-			
+			} 						
 		}
 			
-		return $wppbc_price;
+		return $wcpbc_price;
 	}
 
+	/**
+	 * Returns the product's regular price.
+	 * @return string price
+	 */
+	public function get_regular_price ($price, $product) {			
+		
+		return $this->get_price( $price, $product, '_regular_price');
+	}	
 	
 	/**
 	 * Returns the product's sale price
@@ -194,71 +209,7 @@ class WCPBC_Frontend {
 	 */
 	public function get_sale_price ( $price, $product ) {	
 		
-		return $this->get_regular_price( $price, $product, '_sale_price');
-
-	}
-	
-
-	/**
-	 * Returns the product's active price.	 
-	 * @return string price
-	 */
-	public function get_price ($price, $product) {			
-		
-		$sale_price = $product->get_sale_price();
-
-		$wcpbc_price = ( $sale_price !== '' && $sale_price > 0 )? $sale_price : $this->get_regular_price( $price, $product );
-		
-		return $wcpbc_price;
-	}
-	
-	/**
-	 * Get the min or max variation regular price.
-	 * @param  string $min_or_max - min or max
-	 * @param  boolean  $display Whether the value is going to be displayed
-	 * @return string price
-	 */
-	public function get_variation_regular_price( $price, $product, $min_or_max, $display, $price_meta_key = '_regular_price') {
-
-		$wppbc_price = $price;		
-			
-		$tax_display_mode = get_option( 'woocommerce_tax_display_shop' );
-						
-		$prices = array();
-		
-		$display = array();
-		
-		$price_func = 'get' . $price_meta_key;
-
-		foreach ($product->get_children() as $variation_id) {
-			
-			$variation = $product->get_child( $variation_id );
-			
-			if ( $variation ) {
-								
-				$prices[$variation_id] = $this->$price_func( $price, $variation );							
-
-				$display[$variation_id] = ( $tax_display_mode == 'incl' ) ? $variation->get_price_including_tax( 1, $prices[$variation_id] ) : $variation->get_price_excluding_tax( 1, $prices[$variation_id] );
-			}				 
-		}			
-		
-		if ( $min_or_max == 'min' ) {
-			asort($prices);
-		} else {
-			arsort($prices);
-		}		
-		
-		if ( $display ) {
-			
-			$variation_id = key( $prices );				
-			$wppbc_price = $display[$variation_id];
-			
-		} else {			
-			$wppbc_price = current($prices);
-			
-		}
-		
-		return $wppbc_price;
+		return $this->get_price( $price, $product, '_sale_price');
 	}
 	
 	/**
@@ -267,10 +218,59 @@ class WCPBC_Frontend {
 	 * @param  boolean  $display Whether the value is going to be displayed
 	 * @return string price
 	 */		
-	public function get_variation_price( $price, $product, $min_or_max, $display ) {		
-		
-		return $this->get_variation_regular_price( $price, $product, $min_or_max, $display, '_price' );		
+	public function get_variation_price( $price, $product, $min_or_max, $display, $price_type = '_price' ) {		
+		$wcpbc_price = $price;
+		error_log($this->customer->group_key . " => $min_or_max, $display; $price_type; $price");
+		if ( $this->customer->group_key ) {
+
+			$variation_id = get_post_meta( $product->id, '_' . $this->customer->group_key . '_' . $min_or_max . $price_type . '_variation_id', true );
+
+			if ( $variation_id ) {
+
+				$variation = $product->get_child( $variation_id );
+
+				if ( $variation) {
+
+					$price_function = 'get' . $price_type;
+
+					$wcpbc_price = $variation->$price_function();
+
+					if ( $display ) {
+						$tax_display_mode = get_option( 'woocommerce_tax_display_shop' );
+						$wcpbc_price      = $tax_display_mode == 'incl' ? $variation->get_price_including_tax( 1, $wcpbc_price ) : $variation->get_price_excluding_tax( 1, $wcpbc_price );
+					}
+				}
+
+			} elseif( $wcpbc_price && $this->customer->exchange_rate && $price_type !== '_price') {
+
+				$wcpbc_price = $wcpbc_price * $this->customer->exchange_rate;
+			}
+		}		
+
+		return $wcpbc_price;
 	}	
+	
+	/**
+	 * Get the min or max variation regular price.
+	 * @param  string $min_or_max - min or max
+	 * @param  boolean  $display Whether the value is going to be displayed
+	 * @return string price
+	 */
+	public function get_variation_regular_price( $price, $product, $min_or_max, $display ) {		
+		
+		return $this->get_variation_price( $price, $product, $min_or_max, $display, '_regular_price' );
+	}		
+
+	/**
+	 * Get the min or max variation sale price.
+	 * @param  string $min_or_max - min or max
+	 * @param  boolean  $display Whether the value is going to be displayed
+	 * @return string price
+	 */
+	public function get_variation_sale_price( $price, $product, $min_or_max, $display ) {		
+		
+		return $this->get_variation_price( $price, $product, $min_or_max, $display, '_sale_price' );
+	}
 		 
 }
 

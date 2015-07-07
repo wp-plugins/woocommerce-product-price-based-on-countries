@@ -10,8 +10,9 @@ if ( ! class_exists( 'WCPBC_Admin' ) ) :
  * WooCommerce Price Based Country Admin 
  *
  * @class 		WCPBC_Admin
- * @version		1.3.0 
+ * @version		1.3.2
  * @author 		oscargare
+ * @category	Class
  */
 class WCPBC_Admin {
 
@@ -19,8 +20,7 @@ class WCPBC_Admin {
 		
 		add_action('init', array(&$this, 'init'));
 
-		add_action( 'admin_enqueue_scripts', array( &$this, 'load_admin_script' ) );
-
+		add_action( 'admin_enqueue_scripts', array( &$this, 'load_admin_script' ) );	
 	}
 
 	/**
@@ -34,23 +34,13 @@ class WCPBC_Admin {
 		
 		add_action( 'woocommerce_process_product_meta_simple', array( &$this, 'process_product_simple_countries_prices' ) ) ;						
 		
-		if ( WC()->version < '2.3') {
-			//Deprecated
-			add_action( 'woocommerce_product_after_variable_attributes', array( &$this, 'product_variable_attributes_countries_prices_wc2_2') , 10, 3 );
-
-		} else {
-
-			add_action( 'woocommerce_product_after_variable_attributes', array( &$this, 'product_variable_attributes_countries_prices') , 10, 3 );
-		}
-				
-		
-		add_action( 'woocommerce_process_product_meta_variable', array( &$this, 'process_product_variable_countries_prices' ) );
+		add_action( 'woocommerce_product_after_variable_attributes', array( &$this, 'product_variable_attributes_countries_prices') , 10, 3 );				
 		
 		add_action( 'woocommerce_save_product_variation', array( &$this, 'save_product_variation_countries_prices' ), 10, 2 );
 
-		add_filter( 'woocommerce_currency',  array( &$this, 'order_currency' ) );
+		add_action( 'woocommerce_variable_product_sync', array( &$this, 'variable_product_sync' ), 10, 2 );
 
-		add_action( 'admin_notices', array( &$this, 'check_database_file' ) );	
+		add_filter( 'woocommerce_currency',  array( &$this, 'order_currency' ) );		
 
 	}
 
@@ -62,136 +52,106 @@ class WCPBC_Admin {
 		$settings[] = include( 'class-wc-settings-price-based-country.php' );
 
 		return $settings;
-	}
+	}	
 
 	/**
 	 * Add price input to product simple metabox
 	 */
 	function product_options_countries_prices() {					
 
-		if ( count( WCPBC()->get_regions() ) ) {
-	?>		
-		<div class="options_group show_if_simple show_if_external wc-metaboxes-wrapper" style="margin-bottom: 25px;">			
-			<p class="toolbar">				
-				<a href="#" class="close_all"><?php _e( 'Close all', 'woocommerce' ); ?></a><a href="#" class="expand_all"><?php _e( 'Expand all', 'woocommerce' ); ?></a>
-				<strong>Price Based on Country</strong>
-			</p>
+		foreach ( WCPBC()->get_regions() as $key => $value ) {	
 
-			<div class="wc-metaboxes">
-	<?php 		
-			foreach ( WCPBC()->get_regions() as $key => $value ) {			
-				
-				$_placeholder = '';
-				$_description = '';
+			$_regular_price = get_post_meta( get_the_ID(), '_' . $key . '_regular_price' , true );
+			$_sale_price = get_post_meta( get_the_ID(), '_' . $key . '_sale_price' , true );
 
-				if ( ! empty( $value['empty_price_method'] ) ) {
+			$_price_method = empty($_regular_price) ? 'exchange_rate' : 'manual';	
+			$_display = $_price_method == 'exchange_rate' ? 'none' : 'block';
 
-					$_placeholder = __( 'Auto', 'woocommerce-product-price-based-countries' );	
-					$_description = '<span class="description">' . __( 'Leave blank to apply the specified exchange rate.', 'woocommerce-product-price-based-countries' ) . '</span>';
-				}
-				
 			?>
-				<div class="wc-metabox">
-					<h3>					
-						<div class="handlediv" title="<?php _e( 'Click to toggle', 'woocommerce' ); ?>"></div>
-						<strong class=""><?php echo __( 'Price for', 'woocommerce-product-price-based-countries' ) . ' ' .$value['name'] ;?></strong>
-					</h3>
-					<div class="wc-metabox-content">
-					<table cellpadding="0" cellspacing="0" class="">
-						<tbody>
-							<tr>
-								<td>
-									<label style="margin:0px;"><?php echo __( 'Regular Price', 'woocommerce' ) . ' (' . get_woocommerce_currency_symbol($value['currency']) . ')'; ?></label>
-									<input type="text" id="<?php echo '_' . $key . '_price'; ?>" name="<?php echo '_' . $key . '_price'; ?>" value="<?php echo wc_format_localized_price( get_post_meta( get_the_ID(), '_' . $key . '_price' , true ) ); ?>" class="short wc_input_price" placeholder="<?php echo $_placeholder; ?>" /><?php echo $_description; ?>
-								</td>
-								<td>
-									<label style="margin:0px;"><?php echo __( 'Sale Price', 'woocommerce' ) . ' (' . get_woocommerce_currency_symbol($value['currency']) . ')'; ?></label>
-									<input type="text" id="<?php echo '_' . $key . '_sale_price'; ?>" name="<?php echo '_' . $key . '_sale_price'; ?>" value="<?php echo wc_format_localized_price( get_post_meta( get_the_ID(), '_' . $key . '_sale_price' , true ) ); ?>" class="wc_input_price wcpbc_sale_price" />								
-								</td>
-							</tr>
-						</tbody>
-					</table>					
+				<div class="options_group show_if_simple show_if_external">					
+
+					<?php
+						woocommerce_wp_radio(
+							array(
+								'id' => '_' . $key . '_price_method',
+								'value' => $_price_method,
+								'class' => 'wcpbc_price_method',
+								'label' => __( 'Price for', 'wc-price-based-country' )  . ' ' . $value['name']. ' (' . get_woocommerce_currency_symbol( $value['currency'] ) . ')',								
+								'options' => array(
+									'exchange_rate' => __('Calculate price by applying exchange rate.', 'wc-price-based-country'),
+									'manual' => __('Set price manually.', 'wc-price-based-country')
+								)
+							)
+						);
+					?>										
+					
+					<div style="display:<?php echo $_display; ?>">
+						<p class="form-field">
+							<label><?php echo __( 'Regular Price', 'woocommerce' ) . ' (' . get_woocommerce_currency_symbol($value['currency']) . ')'; ?></label>
+							<input type="text" id="<?php echo '_' . $key . '_regular_price'; ?>" name="<?php echo '_' . $key . '_regular_price'; ?>" value="<?php echo wc_format_localized_price( $_regular_price ); ?>" class="short wc_input_price" placeholder="" />
+						</p>
+
+						<p class="form-field">								
+							<label><?php echo __( 'Sale Price', 'woocommerce' ) . ' (' . get_woocommerce_currency_symbol($value['currency']) . ')'; ?></label>
+							<input type="text" id="<?php echo '_' . $key . '_sale_price'; ?>" name="<?php echo '_' . $key . '_sale_price'; ?>" value="<?php echo wc_format_localized_price( $_sale_price ); ?>" class="short wc_input_price wcpbc_sale_price" />
+						</p>
 					</div>
+
 				</div>
-
-			<?php
-
-				}			
-
-			?>
-
-			</div>
-		</div>
-	<?php				
-		}
+				
+			<?php		
+		}								
 	}
+
 	
 	/**
 	 * Save meta data product simple
 	 */
-	function process_product_simple_countries_prices( $post_id ) {				
+	function process_product_simple_countries_prices( $post_id, $i = false, $variable = '' ) {				
 		
 		foreach ( WCPBC()->get_regions() as $key => $value ) {
 			
-			$id = '_' . $key . '_price';			
+			$key_regular_price = '_' . $key . $variable . '_regular_price';
+			$key_sale_price = '_' . $key . $variable . '_sale_price';			
+			$key_price = '_' . $key . $variable . '_price';						
+			$key_price_method = '_' . $key . $variable . '_price_method';
 			
-			update_post_meta( $post_id, $id, wc_format_decimal( $_POST[$id] ) );
 
-			$id = '_' . $key . '_sale_price';			
+			if ( $i === false ) {
+				
+				$_regular_price = $_POST[$key_regular_price];
+				$_sale_price 	= $_POST[$key_sale_price];
+				$_price_method 	= $_POST[$key_price_method];	
+
+			} else {
+
+				$_regular_price = $_POST[$key_regular_price][$i];
+				$_sale_price 	= $_POST[$key_sale_price][$i];
+				$_price_method 	= $_POST[$key_price_method][$i];		
+			}
+
+			$_price_method = ( $_price_method == 'exchange_rate' || empty( $_regular_price ) ) ? 'exchange_rate' : 'manual';
+
+			if ( $_price_method == 'exchange_rate') {
+
+				$_regular_price = '';
+				$_sale_price 	= '';
+				$_price 		= '';
+
+			} else {
+
+				$_regular_price = wc_format_decimal( $_regular_price );
+				$_sale_price 	= wc_format_decimal( $_sale_price );
+				// Update price if on sale
+				$_price 		= ( '' !== $_sale_price ) ? $_sale_price : $_regular_price;								
+			}				
+
+			update_post_meta( $post_id, $key_regular_price,  $_regular_price );							
+			update_post_meta( $post_id, $key_sale_price, $_sale_price );				
+			update_post_meta( $post_id, $key_price, $_price );							
+			update_post_meta( $post_id, $key_price_method,  $_price_method );							
 			
-			update_post_meta( $post_id, $id, wc_format_decimal( $_POST[$id] ) );
 		}	
-		
-	}
-	
-	/**
-	 * Deprecated for Woocommerce 2.2
-	 * Add price input to product variation metabox
-	 */
-	function product_variable_attributes_countries_prices_wc2_2( $loop, $variation_data, $variation ) {	
-		
-		if ( count( WCPBC()->get_regions() ) ) {
-
-		?>
-			<tr><td colspan="2"><strong>Price Based on Country<strong></td></tr>
-		<?php
-
-			foreach ( WCPBC()->get_regions() as $key => $value ) {
-
-				$placeholder = ( $value['empty_price_method'] == 'exchange_rate' ? __( 'Apply a exchange rate' ) : '' );
-		?>
-			<tr><td colspan="2"><?php echo __( 'Price for', 'woocommerce-product-price-based-countries' ) . ' ' . $value['name']; ?></td></tr>				
-			<tr>				
-				<td >
-					<?php		
-
-						$id = '_' . $key . '_variable_price';
-						
-						$price = wc_format_localized_price( isset( $variation_data[$id] ) ? esc_attr( $variation_data[$id][0] ) : '' ); 
-						 
-					?>
-					<label><?php echo __( 'Regular Price', 'woocommerce' ) . ' (' . get_woocommerce_currency_symbol($value['currency']) . ')'; ?></label>
-					<input type="text" name="<?php echo $id . '[' . $loop . ']'; ?>" value="<?php echo $price; ?>" class="wc_input_price" placeholder="<?php echo $placeholder; ?>" />
-				</td>							
-
-				<td >
-					<?php		
-
-						$id = '_' . $key . '_variable_sale_price';
-						
-						$price = wc_format_localized_price( isset( $variation_data[$id] ) ? esc_attr( $variation_data[$id][0] ) : '' ); 
-						 
-					?>
-					<label><?php echo __( 'Sale Price', 'woocommerce' ) . ' (' . get_woocommerce_currency_symbol($value['currency']) . ')'; ?></label>
-					<input type="text" name="<?php echo $id . '[' . $loop . ']'; ?>" value="<?php echo $price; ?>" class="wc_input_price" />
-				</td>							
-
-			</tr>						
-
-			<?php
-						
-			}		
-		}
 		
 	}
 	
@@ -199,71 +159,133 @@ class WCPBC_Admin {
 	 * Add price input to product variation metabox
 	 */
 	function product_variable_attributes_countries_prices( $loop, $variation_data, $variation ) {							
-		 
+
 		foreach ( WCPBC()->get_regions() as $key => $value) {
 
-			$_placeholder = '';
-			$_description = '';
-
-			if ( ! empty( $value['empty_price_method'] ) ) {
-
-				$_placeholder = __( 'Auto', 'woocommerce-product-price-based-countries' );	
-				$_description = '<span class="description">' . __( 'Leave blank to apply the specified exchange rate.', 'woocommerce-product-price-based-countries' ) . '</span>';
-			}
-
-			$_regular_price = wc_format_localized_price( get_post_meta( $variation->ID, '_' . $key . '_variable_price', true) );
+			$_regular_price = wc_format_localized_price( get_post_meta( $variation->ID, '_' . $key . '_variable_regular_price', true) );
 			$_sale_price = wc_format_localized_price( get_post_meta( $variation->ID, '_' . $key . '_variable_sale_price', true) );
 
-		?>
+			$_empty_method = empty($_regular_price) ? 'exchange_rate' : 'manual';
+			$_display = $_empty_method == 'exchange_rate' ? 'none' : 'block';					
 
-			<div style="width:100%; overflow:auto; padding-right:10px;border-top:1px solid #eee;">
+			?>
+				<div style="width:100%; overflow:auto; padding-right:10px;border-top:1px solid #eee;">
+					
+					<p class="form-row form-row-first"><strong><?php echo __( 'Price for', 'wc-price-based-country' )  . ' ' . $value['name'] . ' (' . get_woocommerce_currency_symbol( $value['currency'] ) . ')'; ?></strong></p>
 
-				<p><strong><?php echo __( 'Price for', 'woocommerce-product-price-based-countries' ) . ' ' . $value['name']; ?></strong></p>
+					<div class="form-row form-row-last <?php echo '_' . $key . '_variable_price_method_' . $loop . '_field'; ?>">
+						<ul>
+							<li style="padding:0;">
+								<label>
+									<input name="<?php echo '_' . $key . '_variable_price_method[' . $loop . ']'; ?>" value="exchange_rate" class="wcpbc_price_method" <?php echo ($_empty_method == 'exchange_rate' ? 'checked="checked"':'');?> type="radio">
+									<?php _e('Calculate price by applying exchange rate.', 'wc-price-based-country') ?>
+								</label>
+							</li>
+							<li style="padding:0;">
+								<label>
+									<input name="<?php echo '_' . $key . '_variable_price_method[' . $loop . ']'; ?>" value="manual" class="wcpbc_price_method" <?php echo ($_empty_method != 'exchange_rate' ? 'checked="checked"':'');?>type="radio">
+									<?php _e('Set price manually.', 'wc-price-based-country') ?>
+								</label>
+							</li>
+						</ul>
+					</div>
 
-				<p class="form-row form-row-first">
-					<label><?php echo __( 'Regular Price:', 'woocommerce' ) . ' (' . get_woocommerce_currency_symbol( $value['currency'] ) . ')'; ?></label>
-					<input type="text" size="5" id="<?php echo '_' . $key . '_variable_price_' . $loop; ?>" name="<?php echo '_' . $key . '_variable_price[' . $loop. ']'; ?>" value="<?php if ( isset( $_regular_price ) ) echo esc_attr( $_regular_price ); ?>" class="wc_input_price" placeholder="<?php echo $_placeholder; ?>" /><?php echo $_description; ?>
-				</p>
-				<p class="form-row form-row-last">
-					<label><?php echo __( 'Sale Price:', 'woocommerce' ) . ' (' . get_woocommerce_currency_symbol( $value['currency'] ) . ')'; ?></label>
-					<input type="text" size="5" id="<?php echo '_' . $key . '_variable_sale_price_' . $loop; ?>" name="<?php echo '_' . $key . '_variable_sale_price[' . $loop. ']'; ?>" value="<?php if ( isset( $_sale_price ) ) echo esc_attr( $_sale_price ); ?>" class="wc_input_price wcpbc_sale_price" />
-				</p>
+					<div style="display:<?php echo $_display;?>">
+						<p class="form-row form-row-first">
+							<label><?php echo __( 'Regular Price:', 'woocommerce' ) . ' (' . get_woocommerce_currency_symbol( $value['currency'] ) . ')'; ?></label>
+							<input type="text" size="5" id="<?php echo '_' . $key . '_variable_regular_price_' . $loop; ?>" name="<?php echo '_' . $key . '_variable_regular_price[' . $loop. ']'; ?>" value="<?php if ( isset( $_regular_price ) ) echo esc_attr( $_regular_price ); ?>" class="wc_input_price" />
+						</p>
+						<p class="form-row form-row-last">
+							<label><?php echo __( 'Sale Price:', 'woocommerce' ) . ' (' . get_woocommerce_currency_symbol( $value['currency'] ) . ')'; ?></label>
+							<input type="text" size="5" id="<?php echo '_' . $key . '_variable_sale_price_' . $loop; ?>" name="<?php echo '_' . $key . '_variable_sale_price[' . $loop. ']'; ?>" value="<?php if ( isset( $_sale_price ) ) echo esc_attr( $_sale_price ); ?>" class="wc_input_price wcpbc_sale_price" />
+						</p>
+					</div>
+				</div>
 
-			</div>
-
-		<?php 
-		
+			<?php			
 		}
-	}
-
-	function process_product_variable_countries_prices( $post_id ) {
-		/*for future versions; process and save de min and max variation price*/ 
-		
-	}
+	}	
 	
 	/**
 	 * Save meta data product variation
 	 */
-	function save_product_variation_countries_prices( $variation_id, $i ) {				
-		
-		foreach ( WCPBC()->get_regions() as $key => $value ) {
-			
-			$meta_key = '_' . $key . '_variable_price';
-			
-			if ( isset( $_POST[$meta_key][$i] ) ) {
-				
-				update_post_meta( $variation_id, $meta_key, wc_format_decimal( $_POST[$meta_key][$i] ) );
-				
-			}
+	function save_product_variation_countries_prices( $variation_id, $i ) {	
 
-			$meta_key = '_' . $key . '_variable_sale_price';
+		$this->process_product_simple_countries_prices( $variation_id, $i, '_variable');		
+	}
+
+	/**
+	 * Sync product variation prices with parent
+	 */
+	function variable_product_sync( $product_id, $children ) {		
+		
+		foreach ( WCPBC()->get_regions() as $region_key => $region ) {
+
+			// Main active prices
+			$min_price            = null;
+			$max_price            = null;
+			$min_price_id         = null;
+			$max_price_id         = null;
+
+			// Regular prices
+			$min_regular_price    = null;
+			$max_regular_price    = null;
+			$min_regular_price_id = null;
+			$max_regular_price_id = null;
+
+			// Sale prices
+			$min_sale_price       = null;
+			$max_sale_price       = null;
+			$min_sale_price_id    = null;
+			$max_sale_price_id    = null;
+
+			foreach ( array( 'price', 'regular_price', 'sale_price' ) as $price_type ) {
+				
+				foreach ( $children as $child_id ) {
+
+					$child_price_method = get_post_meta( $child_id, '_' . $region_key . '_variable_price_method', true );
+
+					if ( $child_price_method !== 'manual' ) {
+
+						$child_price = get_post_meta( $child_id, '_' . $price_type, true );					
+						$child_price = ( !empty( $child_price ) && $region['exchange_rate'] ) ? ( $region['exchange_rate'] * $child_price ) : $child_price;							
+
+					} else{
+
+						$child_price = get_post_meta( $child_id, '_' . $region_key . '_variable_' . $price_type, true );					
+					}
+
+					// Skip non-priced variations
+					if ( $child_price === '' ) {
+						continue;
+					}
+
+					// Skip hidden variations
+					if ( 'yes' === get_option( 'woocommerce_hide_out_of_stock_items' ) ) {
+						$stock = get_post_meta( $child_id, '_stock', true );
+						if ( $stock !== "" && $stock <= get_option( 'woocommerce_notify_no_stock_amount' ) ) {
+							continue;
+						}
+					}
+
+					// Find min price
+					if ( is_null( ${"min_{$price_type}"} ) || $child_price < ${"min_{$price_type}"} ) {
+						${"min_{$price_type}"}    = $child_price;
+						${"min_{$price_type}_id"} = $child_id;
+					}
+
+					// Find max price
+					if ( is_null( ${"max_{$price_type}"} ) || $child_price > ${"max_{$price_type}"} ) {
+						${"max_{$price_type}"}    = $child_price;
+						${"max_{$price_type}_id"} = $child_id;
+					}
+				}
 			
-			if ( isset( $_POST[$meta_key][$i] ) ) {
-				
-				update_post_meta( $variation_id, $meta_key, wc_format_decimal( $_POST[$meta_key][$i] ) );
-				
-			}
-		}				
+				// Store ids
+				update_post_meta( $product_id, '_' . $region_key . '_min_' . $price_type . '_variation_id', ${"min_{$price_type}_id"} );
+				update_post_meta( $product_id, '_' . $region_key . '_max_' . $price_type . '_variation_id', ${"max_{$price_type}_id"} );
+			}			
+		}		
 	}
 
 	/**
@@ -282,32 +304,13 @@ class WCPBC_Admin {
 		}
 			
 		return $currency;
-	}
-
-	/**
-	 * Display admin notices 
-	 */
-	function check_database_file() {
-
-		global $pagenow;		
-		
-		if ( 'admin.php' == $pagenow && isset( $_GET['page'] ) && $_GET['page'] == 'wc-settings' && isset( $_GET['tab'] ) && $_GET['tab'] == 'price_based_country' )			
-			return;
-
-		if ( ! file_exists( WCPBC_GEOIP_DB ) ) {			
-			?>
-			<div class="update-nag">
-				<strong>WooCommerce Product Price Based on Countries</strong> now works with <span style="font-style:italic">GeoIP Database</span>, please go to <a href="<?php echo self_admin_url('admin.php?page=wc-settings&tab=price_based_country'); ?>">settings page</a> to activate.
-	   		</div>
-			<?php							
-		}
-	}
+	}	
 
 	function load_admin_script( ) {	
 
 		$suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
 
-		wp_enqueue_script( 'wc-price-based-country-admin', plugin_dir_url( WCPBC_FILE ) . 'assets/js/wcpbc-admin' . $suffix . '.js', array('jquery'), WC_VERSION, true );		
+		wp_enqueue_script( 'wc-price-based-country-admin', WCPBC()->plugin_url() . 'assets/js/wcpbc-admin' . $suffix . '.js', array('jquery'), WCPBC()->version, true );		
 
 	}
 

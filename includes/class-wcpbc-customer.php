@@ -43,7 +43,7 @@ class WCPBC_Customer {
 
 		// When leaving or ending page load, store data
 		add_action( 'shutdown', array( $this, 'save_data' ), 10 );	
-	}
+	}	
 
 	/**
 	 * save_data function.
@@ -75,7 +75,6 @@ class WCPBC_Customer {
 
 		return $value;
 	}
-
 
 	/**
 	 * Sets wcpbc data form country.

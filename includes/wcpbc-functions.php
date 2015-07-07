@@ -102,7 +102,7 @@ if ( ! function_exists('wcpbc_donwload_geoipdb') ) {
 			
 			if ( is_wp_error( $tmpFile ) ) {
 
-				$result =  sprintf(__('Error downloading GeoIP database from: %s. %s', 'woocommerce-product-price-based-countries'), $download_url, $tmpFile->get_error_message() ) ;	
+				$result =  sprintf(__('Error downloading GeoIP database from: %s. %s', 'wc-price-based-country'), $download_url, $tmpFile->get_error_message() ) ;	
 
 			} else {
 
@@ -112,10 +112,10 @@ if ( ! function_exists('wcpbc_donwload_geoipdb') ) {
 
 				// If we failed, through a message, otherwise proceed.
 				if ( ! $zh ) {
-					$result =  __('Downloaded file could not be opened for reading.', 'woocommerce-product-price-based-countries');
+					$result =  __('Downloaded file could not be opened for reading.', 'wc-price-based-country');
 
 				} elseif (! $h ) {
-					$result = sprintf(__('Database could not be written (%s).', 'woocommerce-product-price-based-countries'), $outFile);
+					$result = sprintf(__('Database could not be written (%s).', 'wc-price-based-country'), $outFile);
 
 				} else {
 					

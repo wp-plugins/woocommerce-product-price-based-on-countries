@@ -1,13 +1,9 @@
 jQuery( function( $ ) {
 
-	$('#empty_price_method').change( function(){				
-		$('input[name="exchange_rate"]').prop("disabled", !( $(this).val() === 'exchange_rate' ) );		 
-	});
-
 	$('body').on( 'keyup', '.wcpbc_sale_price[type=text]', function(){
 		
 		var sale_price_field = $(this);			
-		var regular_price_field = $('#' + sale_price_field.attr('id').replace('_sale','') ) ;		
+		var regular_price_field = $('#' + sale_price_field.attr('id').replace('_sale','_regular') ) ;		
 
 		var sale_price    = parseFloat( accounting.unformat( sale_price_field.val(), woocommerce_admin.mon_decimal_point ) );
 		var regular_price = parseFloat( accounting.unformat( regular_price_field.val(), woocommerce_admin.mon_decimal_point ) );		
@@ -27,10 +23,10 @@ jQuery( function( $ ) {
 		return this;
 	});
 
-	$('body').on( 'change', '.wcpbc_sale_price[type=text]', function(){
+	$('body').on( 'change', '.wcpbc_sale_price[type=text]', function(){			
 
-		var sale_price_field = $(this);		
-		var regular_price_field = $('#' + sale_price_field.attr('id').replace('_sale','') ) ;		
+		var sale_price_field = $(this);				
+		var regular_price_field = $('#' + sale_price_field.attr('id').replace('_sale','_regular') ) ;		
 
 		var sale_price    = parseFloat( accounting.unformat( sale_price_field.val(), woocommerce_admin.mon_decimal_point ) );
 		var regular_price = parseFloat( accounting.unformat( regular_price_field.val(), woocommerce_admin.mon_decimal_point ) );
@@ -46,5 +42,25 @@ jQuery( function( $ ) {
 		return this;			
 
 	});
+
+
+	$('body').on( 'click', '.wcpbc_price_method[type="radio"]', function(){
+
+		var parent_class = '.' + $(this).attr('name') + '_field';					
+
+		parent_class = parent_class.replace('[', '_');
+		parent_class = parent_class.replace(']', '');
+		
+		$(this).parents(parent_class).next().toggle( $(this).val() == 'manual');
+		return this;
+	});
+
+	$('#wc_price_based_country_test_mode').on('change', function() {
+   		if ($(this).is(':checked')) {
+   			$('#wc_price_based_country_test_country').closest('tr').show();
+   		} else {
+   			$('#wc_price_based_country_test_country').closest('tr').hide();
+   		}
+   	}).change();
 
 });
