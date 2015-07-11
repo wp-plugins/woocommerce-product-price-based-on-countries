@@ -63,8 +63,6 @@ delete_option('_oga_wppbc_countries_groups');
 
 add_option('wc_price_based_country_regions', $regions);
 
-//WCPBC()->regions = $regions;
-
 /* sync variable products */
 require_once( WC()->plugin_path() . '/includes/class-wc-product-variable.php' );
 
@@ -93,5 +91,16 @@ if ( wp_next_scheduled( 'wcpbc_update_geoip' ) ) {
 
 delete_option('wc_price_based_country_update_geoip');
 
-/* set geolocation address */
-//update_option('woocommerce_default_customer_address', 'geolocation');
+// Delete de options older options
+delete_option( '_oga_wppbc_apiurl' );
+delete_option ( '_oga_wppbc_api_country_field' );
+
+
+// Delete geoip db
+$geoip_db_dir = wp_upload_dir();
+$geoip_db_dir = $geoip_db_dir['basedir'] . '/wc_price_based_country';
+
+if ( file_exists( $geoip_db_dir .'/GeoLite2-Country.mmdb' ) )  {
+	unlink( $geoip_db_dir .'/GeoLite2-Country.mmdb' );
+	rmdir( $geoip_db_dir );
+}	

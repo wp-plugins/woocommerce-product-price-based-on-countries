@@ -46,7 +46,7 @@ class WCPBC_Frontend {
 
 		add_filter( 'woocommerce_get_sale_regular_price', array( &$this, 'get_variation_sale_price' ), 10, 4 );		
 		
-		add_shortcode( 'country_selector', array( &$this, 'country_select' ) );
+		add_shortcode( 'wcpbc_country_selector', array( &$this, 'country_select' ) );
 
 	}		
 
@@ -181,13 +181,9 @@ class WCPBC_Frontend {
 
 				$wcpbc_price = get_post_meta( $post_id, $meta_key_preffix . $price_type, true );
 
-			} else {
+			} elseif ( $this->customer->exchange_rate && !empty( $price ) ) {
 
-				if ( $this->customer->exchange_rate) {
-
-					$wcpbc_price = ( $price * $this->customer->exchange_rate );
-				}				
-
+					$wcpbc_price = ( $price * $this->customer->exchange_rate );							
 			} 						
 		}
 			
@@ -220,7 +216,7 @@ class WCPBC_Frontend {
 	 */		
 	public function get_variation_price( $price, $product, $min_or_max, $display, $price_type = '_price' ) {		
 		$wcpbc_price = $price;
-		error_log($this->customer->group_key . " => $min_or_max, $display; $price_type; $price");
+		
 		if ( $this->customer->group_key ) {
 
 			$variation_id = get_post_meta( $product->id, '_' . $this->customer->group_key . '_' . $min_or_max . $price_type . '_variation_id', true );

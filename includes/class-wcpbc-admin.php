@@ -220,7 +220,7 @@ class WCPBC_Admin {
 	function variable_product_sync( $product_id, $children ) {		
 		
 		foreach ( WCPBC()->get_regions() as $region_key => $region ) {
-
+			
 			// Main active prices
 			$min_price            = null;
 			$max_price            = null;
@@ -239,9 +239,9 @@ class WCPBC_Admin {
 			$min_sale_price_id    = null;
 			$max_sale_price_id    = null;
 
-			foreach ( array( 'price', 'regular_price', 'sale_price' ) as $price_type ) {
-				
-				foreach ( $children as $child_id ) {
+			foreach ( array( 'price', 'regular_price', 'sale_price' ) as $price_type ) {								
+
+				foreach ( $children as $child_id ) {				
 
 					$child_price_method = get_post_meta( $child_id, '_' . $region_key . '_variable_price_method', true );
 
@@ -253,7 +253,7 @@ class WCPBC_Admin {
 					} else{
 
 						$child_price = get_post_meta( $child_id, '_' . $region_key . '_variable_' . $price_type, true );					
-					}
+					}					
 
 					// Skip non-priced variations
 					if ( $child_price === '' ) {

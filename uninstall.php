@@ -1,30 +1,38 @@
 <?php
 
 // If uninstall not called from WordPress exit
-if( !defined( 'WP_UNINSTALL_PLUGIN' ) ) exit();
+if( !defined( 'WP_UNINSTALL_PLUGIN' ) ) {
+	exit();
+}
 
-//delete de options
+global $wpdb;
 
-delete_option( '_oga_wppbc_apiurl' );
+// Post meta
+$regions = array_keys( get_option( 'wc_price_based_country_regions', array() ) );
 
-delete_option ( '_oga_wppbc_api_country_field' );
+foreach ( $regions as $region_key ) {
 
-delete_option( '_oga_wppbc_countries_groups' ); 
+	foreach ( array( '_price', '_regular_price', '_sale_price', '_price_method' ) as $price_type ) {
 
-delete_option( 'wc_price_based_country_update_geoip' );
+		foreach ( array('', '_variable') as $variable) {
 
-delete_option( 'wc_price_based_country_debug_mode' );
+			$meta_key = '_' . $region_key . $variable . $price_type;
 
-delete_option( 'wc_price_based_country_debug_ip' );
+			$wpdb->delete( $wpdb->postmeta, array( 'meta_key' => $meta_key ) );			
+		}
 
-delete_option( 'wc_price_based_country_timestamp' );
+		if ( $price_type !== '_price_method') {
 
+			foreach ( array('_min', '_max' ) as $min_or_max ) {
 
-// unlink geoip db
+				$meta_key = '_' . $region_key . $min_or_max . $price_type . '_variation_id';
 
-$geoip_db = wp_upload_dir();
-$geoip_db = $geoip_db['basedir'] . '/wc-price-based-country/GeoLite2-Country.mmdb';
+				$wpdb->delete( $wpdb->postmeta, array( 'meta_key' => $meta_key ) );			
+			}		
+		}		
+	}	
+}
 
-if ( file_exists($geoip_db) ) 
-	unlink( $geoip_db);
+$wpdb->query("DELETE FROM $wpdb->options WHERE option_name LIKE 'wc_price_based_country_%'");
+
 ?>

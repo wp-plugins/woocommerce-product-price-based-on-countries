@@ -1,3 +1,4 @@
+
 <?php
 
 if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
@@ -398,25 +399,35 @@ class WC_Settings_Price_Based_Country extends WC_Settings_Page {
 			if ( isset( $_POST['delete_group'] ) ) {
 				
 				$section_settings = WCPBC()->get_regions();
-				$metakeys = array();
+				
+				global $wpdb;
 
-				foreach ( $_POST['delete_group'] as $value ) {
+				foreach ( $_POST['delete_group'] as $region_key ) {
 
-					unset( $section_settings[$value] );
+					unset( $section_settings[$region_key] );
 
-					foreach ( array('_price', '_regular_price', '_sale_price', '_price_method') as $price_key ) {
+					foreach ( array('_price', '_regular_price', '_sale_price', '_price_method') as $price_type ) {
+						
 						foreach ( array('', '_variable') as $variable) {
-								
-								$metakeys[] = "'_$value" . $variable . $price_key ."'";
-							}	
+							
+							$meta_key = '_' . $region_key . $variable . $price_type;
+
+							$wpdb->delete( $wpdb->postmeta, array( 'meta_key' => $meta_key ) );			
+						}	
+
+						if ( $price_type !== '_price_method') {
+
+							foreach ( array('_min', '_max' ) as $min_or_max ) {
+
+								$meta_key = '_' . $region_key . $min_or_max . $price_type . '_variation_id';
+
+								$wpdb->delete( $wpdb->postmeta, array( 'meta_key' => $meta_key ) );			
+							}		
+						}		
 					}					
 				}
 
-				update_option( 'wc_price_based_country_regions', $section_settings );
-				
-				//delete postmeta data
-				global $wpdb;
-				$wpdb->query( "DELETE FROM " . $wpdb->postmeta . " WHERE meta_key in (" . implode(',', $metakeys) . ")" );
+				update_option( 'wc_price_based_country_regions', $section_settings );							
 
 			}						
 

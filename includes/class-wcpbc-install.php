@@ -19,8 +19,7 @@ class WCPBC_Install {
 	public static function init() {		
 		
 		add_action( 'admin_init', array( __CLASS__, 'update_actions' ), 5 );
-		add_action( 'admin_init', array( __CLASS__, 'check_version' ) );		
-		add_action( 'admin_init', array( __CLASS__, 'check_default_customer_address' ) );			
+		add_action( 'admin_init', array( __CLASS__, 'check_version' ) );				
 	}
 
 	/**
@@ -60,6 +59,9 @@ class WCPBC_Install {
 				
 		if (  ! defined( 'IFRAME_REQUEST' ) && self::get_install_version() !== WCPBC()->version ) {
 			add_action( 'admin_notices', array( __CLASS__, 'update_notice' ) );
+
+		} else {
+			self::check_default_customer_address();
 		}
 	}
 
