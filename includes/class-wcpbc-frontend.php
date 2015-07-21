@@ -12,7 +12,7 @@ require_once 'class-wcpbc-customer.php';
  * WooCommerce Price Based Country Front-End
  *
  * @class 		WCPBC_Frontend
- * @version		1.3.2
+ * @version		1.3.3
  * @author 		oscargare
  */
 class WCPBC_Frontend {
@@ -21,6 +21,11 @@ class WCPBC_Frontend {
 	 * @var WCPBC_Customer $customer
 	 */
 	protected $customer = null;
+
+	/**
+	 * @var int $filter_widget_min_or_max;
+	 */
+	protected $filter_widget_min_or_max = 'min';
 
 	function __construct(){
 		
@@ -44,8 +49,14 @@ class WCPBC_Frontend {
 
 		add_filter( 'woocommerce_get_variation_regular_price', array( &$this, 'get_variation_regular_price' ), 10, 4 );	
 
-		add_filter( 'woocommerce_get_sale_regular_price', array( &$this, 'get_variation_sale_price' ), 10, 4 );		
+		add_filter( 'woocommerce_get_variation_sale_price', array( &$this, 'get_variation_sale_price' ), 10, 4 );		
 		
+		// Price Filter
+		add_filter( 'woocommerce_price_filter_results', array( &$this, 'price_filter_results' ), 10, 3 );
+
+		add_filter( 'woocommerce_price_filter_widget_amount', array( &$this, 'price_filter_widget_amount' ) );
+
+		//shortcode country selector
 		add_shortcode( 'wcpbc_country_selector', array( &$this, 'country_select' ) );
 
 	}		
@@ -266,6 +277,64 @@ class WCPBC_Frontend {
 	public function get_variation_sale_price( $price, $product, $min_or_max, $display ) {		
 		
 		return $this->get_variation_price( $price, $product, $min_or_max, $display, '_sale_price' );
+	}
+
+	/**
+	 * Return matched produts where price between min and max
+	 *
+	 * @param array $matched_products_query
+	 * @param int $min 
+	 * @param int $max
+	 * @return array
+	 */
+	public function price_filter_results( $matched_products_query, $min, $max ){
+
+		global $wpdb;
+
+		if ( $this->customer->group_key ) {
+			
+			$_price_method = '_' . $this->customer->group_key . '_price_method';
+			$_price = '_' . $this->customer->group_key . '_price';
+
+			$sql = $wpdb->prepare('SELECT DISTINCT ID, post_parent, post_type FROM %1$s 
+					INNER JOIN %2$s wc_price ON ID = wc_price.post_id and wc_price.meta_key = "_price"
+					LEFT JOIN %2$s price_method ON ID = price_method.post_id and price_method.meta_key = "%3$s"
+					LEFT JOIN %2$s price ON ID = price.post_id and price.meta_key = "%4$s"
+					WHERE post_type IN ( "product", "product_variation" )
+					AND post_status = "publish"					
+					AND IF(IFNULL(price_method.meta_value, "exchange_rate") = "exchange_rate", wc_price.meta_value * %5$s, price.meta_value) BETWEEN %6$d AND %7$d'
+			, $wpdb->posts, $wpdb->postmeta, $_price_method, $_price, $this->customer->exchange_rate, $min, $max);
+
+			$matched_products_query = $wpdb->get_results( $sql, OBJECT_K );			
+
+		}
+
+		return $matched_products_query;
+	}
+
+	/**
+	 * Return de min and max value of price filter widget. Beta only works when have'nt any manually price greater or less that $min_or_max * exchage rate
+	 *
+	 * @param int $min_or_max
+	 * @return array
+	 */	
+	public function price_filter_widget_amount( $min_or_max ) {
+
+		if ( $this->customer->exchange_rate ) {
+
+			$min_or_max = $min_or_max * $this->customer->exchange_rate;
+
+			if ($this->filter_widget_min_or_max == 'min') {
+				
+				$min_or_max = floor($min_or_max);
+				$this->filter_widget_min_or_max = 'max';
+
+			} else {
+				$min_or_max = ceil($min_or_max);
+			}
+		}
+
+		return $min_or_max;
 	}
 		 
 }
