@@ -12,7 +12,7 @@ require_once 'class-wcpbc-customer.php';
  * WooCommerce Price Based Country Front-End
  *
  * @class 		WCPBC_Frontend
- * @version		1.3.3
+ * @version		1.3.4
  * @author 		oscargare
  */
 class WCPBC_Frontend {
@@ -50,6 +50,8 @@ class WCPBC_Frontend {
 		add_filter( 'woocommerce_get_variation_regular_price', array( &$this, 'get_variation_regular_price' ), 10, 4 );	
 
 		add_filter( 'woocommerce_get_variation_sale_price', array( &$this, 'get_variation_sale_price' ), 10, 4 );		
+
+		add_filter( 'woocommerce_variation_prices', array( &$this, 'get_variation_prices_array' ), 10, 2 );		
 		
 		// Price Filter
 		add_filter( 'woocommerce_price_filter_results', array( &$this, 'price_filter_results' ), 10, 3 );
@@ -77,7 +79,7 @@ class WCPBC_Frontend {
 		} elseif ( isset( $_POST['wcpbc-manual-country'] ) && $_POST['wcpbc-manual-country'] ) {			
 			
 			/* set customer WooCommerce customer country*/
-			WC()->customer->set_country($_POST['wcpbc-manual-country']);
+			WC()->customer->set_country( $_POST['wcpbc-manual-country'] );
 		}
 
 		$this->customer = new WCPBC_Customer();								
@@ -277,6 +279,77 @@ class WCPBC_Frontend {
 	public function get_variation_sale_price( $price, $product, $min_or_max, $display ) {		
 		
 		return $this->get_variation_price( $price, $product, $min_or_max, $display, '_sale_price' );
+	}
+
+	/**
+	 * Get an array of all sale and regular prices from all variations.
+	 * @since WooCommerce 2.4
+	 * @param array() sale and regular prices for default location
+	 * @param WC_Product_Variable 
+	 * @param  bool Are prices for display? If so, taxes will be calculated.
+	 * @return array()
+	 */
+	public function get_variation_prices_array( $prices_array, $product, $display ) {
+
+		if ( $this->customer->group_key ) {
+
+			$cache_key = 'var_prices_' . md5( json_encode( array(
+				$product->id,
+				$display ? WC_Tax::get_rates() : '',
+				$this->customer->group_key,
+				WC_Cache_Helper::get_transient_version( 'product' )
+			) ) );
+
+			if ( false === ( $prices_array = get_transient( $cache_key ) ) ) {				
+
+				$prices            = array();
+				$regular_prices    = array();
+				$sale_prices       = array();
+				$tax_display_mode  = get_option( 'woocommerce_tax_display_shop' );
+
+				foreach ( $product->get_children( true ) as $variation_id ) {
+
+					if ( $variation = $this->get_child( $variation_id ) ) {
+							
+						$price 			= $variation->get_price();
+						$regular_price 	= $variation->get_regular_price();
+						$sale_price 	= $variation->get_sale_price();
+
+						// If sale price does not equal price, the product is not yet on sale
+						if ( $price != $sale_price ) {
+							$sale_price = $regular_price;
+						}
+						// If we are getting prices for display, we need to account for taxes
+						if ( $display ) {
+							$price         = $tax_display_mode == 'incl' ? $variation->get_price_including_tax( 1, $price ) : $variation->get_price_excluding_tax( 1, $price );
+							$regular_price = $tax_display_mode == 'incl' ? $variation->get_price_including_tax( 1, $regular_price ) : $variation->get_price_excluding_tax( 1, $regular_price );
+							$sale_price    = $tax_display_mode == 'incl' ? $variation->get_price_including_tax( 1, $sale_price ) : $variation->get_price_excluding_tax( 1, $sale_price );
+						}													
+
+						$prices[ $variation_id ]         = $price;
+						$regular_prices[ $variation_id ] = $regular_price;
+						$sale_prices[ $variation_id ]    = $sale_price;
+
+					}
+					
+				}
+
+				asort( $prices );
+				asort( $regular_prices );
+				asort( $sale_prices );
+
+				$prices_array  = array(
+					'price'         => $prices,
+					'regular_price' => $regular_prices,
+					'sale_price'    => $sale_prices
+				);
+
+				set_transient( $cache_key, $prices_array, DAY_IN_SECONDS * 30 );				
+			}
+
+		}			
+
+		return $prices_array;
 	}
 
 	/**
