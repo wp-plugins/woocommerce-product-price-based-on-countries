@@ -12,7 +12,7 @@ require_once 'class-wcpbc-customer.php';
  * WooCommerce Price Based Country Front-End
  *
  * @class 		WCPBC_Frontend
- * @version		1.3.4
+ * @version		1.3.5
  * @author 		oscargare
  */
 class WCPBC_Frontend {
@@ -51,7 +51,7 @@ class WCPBC_Frontend {
 
 		add_filter( 'woocommerce_get_variation_sale_price', array( &$this, 'get_variation_sale_price' ), 10, 4 );		
 
-		add_filter( 'woocommerce_variation_prices', array( &$this, 'get_variation_prices_array' ), 10, 2 );		
+		add_filter( 'woocommerce_variation_prices', array( &$this, 'get_variation_prices_array' ), 10, 3 );		
 		
 		// Price Filter
 		add_filter( 'woocommerce_price_filter_results', array( &$this, 'price_filter_results' ), 10, 3 );
@@ -95,7 +95,13 @@ class WCPBC_Frontend {
 
 			$suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
 
-			wp_enqueue_script( 'wc-price-based-country-checkout', WCPBC()->plugin_url() . 'assets/js/wcpbc-checkout' . $suffix . '.js', array( 'wc-checkout', 'wc-cart-fragments' ), WC_VERSION, true );
+			if ( version_compare( WC()->version, '2.4', '<' ) ) {
+				$version = '-2.3';
+			} else {
+				$version = '';
+			}
+
+			wp_enqueue_script( 'wc-price-based-country-checkout', WCPBC()->plugin_url() . 'assets/js/wcpbc-checkout' . $version . $suffix . '.js', array( 'wc-checkout', 'wc-cart-fragments' ), WC_VERSION, true );
 		}
 
 	}
@@ -309,7 +315,7 @@ class WCPBC_Frontend {
 
 				foreach ( $product->get_children( true ) as $variation_id ) {
 
-					if ( $variation = $this->get_child( $variation_id ) ) {
+					if ( $variation = $product->get_child( $variation_id ) ) {
 							
 						$price 			= $variation->get_price();
 						$regular_price 	= $variation->get_regular_price();
